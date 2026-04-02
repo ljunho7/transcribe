@@ -49,8 +49,7 @@ def upload_to_youtube():
             "description": (
                 f"📰 {today_kr} 주요 글로벌 뉴스를 한국어로 요약해드립니다.\n\n"
                 f"{script_preview}...\n\n"
-                f"Sources: WSJ What's News\n\n"
-                f"#뉴스 #한국어뉴스 #글로벌뉴스 #WSJ #경제뉴스 #시사 #{today_en.replace('-', '')}"
+                f"#뉴스 #한국어뉴스 #글로벌뉴스 #경제뉴스 #시사 #{today_en.replace('-', '')}"
             ),
             "tags": ["뉴스", "한국어뉴스", "글로벌뉴스", "WSJ", "경제", "시사", "뉴스요약"],
             "categoryId": "25",  # News & Politics
