@@ -2,7 +2,7 @@ name: Daily Korean News Podcast
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 6:00 AM UTC every day (3 PM KST)
+    - cron: '0 3 * * *'   # 6:00 AM UTC every day (3 PM KST)
   workflow_dispatch:        # Allow manual trigger from GitHub UI
 
 jobs:
