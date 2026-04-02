@@ -26,25 +26,25 @@
   {
     "name": "JP Morgan Making Sense",
     "rss": "https://feed.podbean.com/marketmatters/feed.xml",
-    "max_age_hours": 48,
+    "max_age_hours": 24,
     "priority": 5
   },
   {
     "name": "Goldman Sachs The Markets",
     "rss": "https://feeds.megaphone.fm/GLD9322922848",
-    "max_age_hours": 168,
+    "max_age_hours": 24,
     "priority": 6
   },
   {
     "name": "Goldman Sachs Exchanges",
     "rss": "https://feeds.megaphone.fm/GLD9218176758",
-    "max_age_hours": 168,
+    "max_age_hours": 24,
     "priority": 7
   },
   {
     "name": "The Economist - Money Talks",
     "rss": "https://rss.acast.com/theeconomistmoneytalks",
-    "max_age_hours": 168,
+    "max_age_hours": 24,
     "priority": 8
   }
 ]
