@@ -1,21 +1,17 @@
 """
-Step 4: Convert Korean script to speech using Microsoft Edge TTS (free, no API key).
-        Uses the high-quality ko-KR-SunHiNeural voice.
+Step 4: Convert Korean script to speech using gTTS (Google Translate TTS).
+        Free, no API key needed, works on GitHub Actions.
         Saves audio to temp/korean_audio.mp3
 """
 
-import asyncio
 import os
-import edge_tts
+from gtts import gTTS
 
-# Best Korean voices available in edge-tts:
-#   ko-KR-SunHiNeural  — female, clear and natural (recommended)
-#   ko-KR-InJoonNeural — male, professional tone
-VOICE = "ko-KR-SunHiNeural"
 OUTPUT_FILE = "temp/korean_audio.mp3"
+LANGUAGE = "ko"  # Korean
 
 
-async def generate_audio():
+def generate_audio():
     with open("temp/korean_script.txt", "r", encoding="utf-8") as f:
         text = f.read().strip()
 
@@ -24,15 +20,15 @@ async def generate_audio():
 
     os.makedirs("temp", exist_ok=True)
 
-    print(f"[TTS] Generating audio with voice: {VOICE}")
+    print(f"[TTS] Generating Korean audio with gTTS...")
     print(f"  Script length: {len(text):,} characters")
 
-    communicate = edge_tts.Communicate(text, VOICE)
-    await communicate.save(OUTPUT_FILE)
+    tts = gTTS(text=text, lang=LANGUAGE, slow=False)
+    tts.save(OUTPUT_FILE)
 
     size_mb = os.path.getsize(OUTPUT_FILE) / (1024 * 1024)
-    print(f"✅ Audio saved to {OUTPUT_FILE} ({size_mb:.1f} MB)")
+    print(f"Audio saved to {OUTPUT_FILE} ({size_mb:.1f} MB)")
 
 
 if __name__ == "__main__":
-    asyncio.run(generate_audio())
+    generate_audio()
