@@ -4,10 +4,20 @@ Step 3: Read all transcripts, summarize key stories, and translate to Korean
 """
 
 import os
+import time
 from google import genai
 from google.genai import types
 from pathlib import Path
 from datetime import datetime
+
+# Try preferred model first, fall back if unavailable
+MODELS = [
+    "gemini-3.1-flash-lite-preview",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+]
+MAX_RETRIES = 3
+RETRY_DELAY = 10  # seconds between retries
 
 
 def summarize_and_translate():
@@ -48,24 +58,39 @@ TRANSCRIPTS:
 
 Korean summary only:"""
 
-    print("[Gemini] Summarizing and translating with gemini-3.1-flash-lite-preview...")
-    response = client.models.generate_content(
-        model="gemini-3.1-flash-lite-preview",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            max_output_tokens=4096,
-            temperature=0.4,
-        ),
-    )
+    # Try each model with retries
+    last_error = None
+    for model in MODELS:
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                print(f"[Gemini] Trying {model} (attempt {attempt}/{MAX_RETRIES})...")
+                response = client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        max_output_tokens=4096,
+                        temperature=0.4,
+                    ),
+                )
+                korean_script = response.text.strip()
 
-    korean_script = response.text.strip()
+                os.makedirs("temp", exist_ok=True)
+                with open("temp/korean_script.txt", "w", encoding="utf-8") as f:
+                    f.write(korean_script)
 
-    os.makedirs("temp", exist_ok=True)
-    with open("temp/korean_script.txt", "w", encoding="utf-8") as f:
-        f.write(korean_script)
+                print(f"Korean script saved ({len(korean_script):,} characters) using {model}.")
+                return korean_script
 
-    print(f"Korean script saved ({len(korean_script):,} characters).")
-    return korean_script
+            except Exception as e:
+                last_error = e
+                print(f"  Failed: {e}")
+                if attempt < MAX_RETRIES:
+                    print(f"  Retrying in {RETRY_DELAY}s...")
+                    time.sleep(RETRY_DELAY)
+
+        print(f"  All retries failed for {model}, trying next model...")
+
+    raise RuntimeError(f"All models failed. Last error: {last_error}")
 
 
 if __name__ == "__main__":
