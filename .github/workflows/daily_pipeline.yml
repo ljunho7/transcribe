@@ -2,61 +2,62 @@ name: Daily Korean News Podcast
 
 on:
   schedule:
-    - cron: '0 3 * * *'   # 6:00 AM UTC every day (3 PM KST)
-  workflow_dispatch:        # Allow manual trigger from GitHub UI
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+env:
+  PYTHONUNBUFFERED: "1"   # Force real-time log output for all steps
 
 jobs:
   generate-and-upload:
     runs-on: ubuntu-latest
-    timeout-minutes: 60     # Safety limit
+    timeout-minutes: 60
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. Python setup ──────────────────────────────────────────────────────
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      # ── 3. Dependencies ──────────────────────────────────────────────────────
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
       - name: Install FFmpeg
         run: sudo apt-get install -y ffmpeg
 
-      # ── 4. Pipeline steps ────────────────────────────────────────────────────
+      - name: Pre-download faster-whisper model
+        run: python -c "from faster_whisper import WhisperModel; WhisperModel('tiny', device='cpu', compute_type='int8'); print('Model ready.')"
+
       - name: Step 1 — Fetch latest podcast episodes
-        run: python scripts/fetch_rss.py
+        run: python -u scripts/fetch_rss.py
 
       - name: Step 2 — Transcribe with Groq Whisper
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: python scripts/transcribe.py
+        run: python -u scripts/transcribe.py
 
       - name: Step 3 — Summarize and translate to Korean (Gemini)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python scripts/summarize_translate.py
+        run: python -u scripts/summarize_translate.py
 
-      - name: Step 4 — Generate Korean voice (Edge TTS)
-        run: python scripts/generate_voice.py
+      - name: Step 4 — Generate Korean voice (gTTS)
+        run: python -u scripts/generate_voice.py
 
       - name: Step 5 — Assemble video (FFmpeg)
-        run: python scripts/assemble_video.py
+        run: python -u scripts/assemble_video.py
 
       - name: Step 6 — Upload to YouTube
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: python scripts/upload_youtube.py
+        run: python -u scripts/upload_youtube.py
 
-      # ── 5. Cleanup ───────────────────────────────────────────────────────────
       - name: Clean up temp files
         if: always()
         run: rm -rf temp/
