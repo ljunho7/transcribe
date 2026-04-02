@@ -1,8 +1,10 @@
 """
-Step 2: Transcribe each downloaded MP3 using Groq's Whisper API.
+Step 2: Transcribe each downloaded MP3.
+        Primary:  Groq Whisper API (fast, free tier)
+        Fallback: faster-whisper running locally on the GitHub Actions runner
         - Files over 24MB are split into chunks with FFmpeg
-        - Rate limit errors (429) are handled with automatic retry + wait
-        - Episodes that can't fit in the hourly quota are skipped gracefully
+        - Rate limit errors (429) are retried with automatic wait
+        - If Groq fails entirely, falls back to local faster-whisper
 """
 
 import json
@@ -11,16 +13,17 @@ import re
 import time
 import subprocess
 import math
-from groq import Groq
 from pathlib import Path
+from groq import Groq
 
-MAX_SIZE_MB   = 24    # Groq's 25MB limit — stay safely under
-MAX_RETRIES   = 3     # Retries per chunk on rate limit
-DEFAULT_WAIT  = 300   # Default wait (5 min) if we can't parse retry-after
+MAX_SIZE_MB  = 24
+MAX_RETRIES  = 3
+DEFAULT_WAIT = 300
 
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def parse_wait_seconds(error_message):
-    """Extract wait time from Groq rate limit error message."""
     match = re.search(r"try again in (\d+)m(\d+)s", str(error_message))
     if match:
         return int(match.group(1)) * 60 + int(match.group(2))
@@ -31,7 +34,7 @@ def parse_wait_seconds(error_message):
 
 
 def split_audio(file_path, chunk_dir):
-    """Split an MP3 into ~24MB chunks using FFmpeg."""
+    """Split MP3 into ~24MB chunks using FFmpeg."""
     size_mb = os.path.getsize(file_path) / (1024 * 1024)
     num_chunks = math.ceil(size_mb / MAX_SIZE_MB)
 
@@ -45,71 +48,93 @@ def split_audio(file_path, chunk_dir):
 
     os.makedirs(chunk_dir, exist_ok=True)
     chunk_paths = []
-
     for i in range(num_chunks):
-        start = i * chunk_duration
         chunk_path = os.path.join(chunk_dir, f"chunk_{i:03d}.mp3")
         subprocess.run([
             "ffmpeg", "-y", "-i", file_path,
-            "-ss", str(start), "-t", str(chunk_duration),
+            "-ss", str(i * chunk_duration),
+            "-t", str(chunk_duration),
             "-c", "copy", chunk_path
         ], capture_output=True)
         if os.path.exists(chunk_path) and os.path.getsize(chunk_path) > 0:
             chunk_paths.append(chunk_path)
-
     return chunk_paths
 
 
-def transcribe_single(client, file_path, label=""):
-    """Transcribe one audio file with retry on rate limit."""
+# ── Primary: Groq ─────────────────────────────────────────────────────────────
+
+def groq_transcribe_single(client, file_path, label=""):
+    """Transcribe one file via Groq with rate-limit retry."""
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             with open(file_path, "rb") as f:
                 audio_bytes = f.read()
-            result = client.audio.transcriptions.create(
+            return client.audio.transcriptions.create(
                 file=(os.path.basename(file_path), audio_bytes),
                 model="whisper-large-v3",
                 response_format="text",
                 language="en",
             )
-            return result
         except Exception as e:
             if "429" in str(e) or "rate_limit" in str(e).lower():
                 wait = parse_wait_seconds(str(e))
-                print(f"  ⏳ Rate limit hit{' on ' + label if label else ''}. Waiting {wait}s...")
-                time.sleep(wait + 5)  # +5s buffer
+                print(f"  ⏳ Rate limit{' on ' + label if label else ''}. Waiting {wait}s...")
+                time.sleep(wait + 5)
                 if attempt == MAX_RETRIES:
                     raise
             else:
                 raise
 
 
-def transcribe_file(client, file_path):
-    """Transcribe audio, splitting large files into chunks."""
+def groq_transcribe(client, file_path):
+    """Groq transcription with chunking for large files."""
     size_mb = os.path.getsize(file_path) / (1024 * 1024)
 
     if size_mb <= MAX_SIZE_MB:
-        return transcribe_single(client, file_path)
-    else:
-        print(f"    ⚡ File is {size_mb:.1f}MB — splitting into chunks...")
-        chunk_dir = file_path.replace(".mp3", "_chunks")
-        chunks = split_audio(file_path, chunk_dir)
-        print(f"    📦 Split into {len(chunks)} chunks")
+        return groq_transcribe_single(client, file_path)
 
-        full_transcript = []
-        for i, chunk_path in enumerate(chunks):
-            print(f"    🎙️  Transcribing chunk {i+1}/{len(chunks)}...")
-            result = transcribe_single(client, chunk_path, label=f"chunk {i+1}")
-            full_transcript.append(result)
-            os.remove(chunk_path)
+    print(f"    ⚡ {size_mb:.1f}MB — splitting into chunks...")
+    chunk_dir = file_path.replace(".mp3", "_chunks")
+    chunks = split_audio(file_path, chunk_dir)
+    print(f"    📦 {len(chunks)} chunks")
 
-        try:
-            os.rmdir(chunk_dir)
-        except Exception:
-            pass
+    parts = []
+    for i, chunk_path in enumerate(chunks):
+        print(f"    🎙️  Groq chunk {i+1}/{len(chunks)}...")
+        parts.append(groq_transcribe_single(client, chunk_path, label=f"chunk {i+1}"))
+        os.remove(chunk_path)
+    try:
+        os.rmdir(chunk_dir)
+    except Exception:
+        pass
+    return " ".join(parts)
 
-        return " ".join(full_transcript)
 
+# ── Fallback: faster-whisper (local) ─────────────────────────────────────────
+
+def local_transcribe(file_path):
+    """Transcribe using faster-whisper locally — no API key needed."""
+    print(f"  🔄 Using local faster-whisper fallback...")
+
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError:
+        print("  📦 Installing faster-whisper...")
+        subprocess.run(
+            ["pip", "install", "faster-whisper", "--break-system-packages", "-q"],
+            check=True
+        )
+        from faster_whisper import WhisperModel
+
+    # Use tiny model for speed on GitHub Actions CPU
+    model = WhisperModel("tiny", device="cpu", compute_type="int8")
+    segments, _ = model.transcribe(file_path, language="en", beam_size=1)
+    transcript = " ".join(seg.text.strip() for seg in segments)
+    print(f"  ✅ Local transcription complete ({len(transcript):,} chars)")
+    return transcript
+
+
+# ── Main ─────────────────────────────────────────────────────────────────────
 
 def transcribe_episodes():
     client = Groq(api_key=os.environ["GROQ_API_KEY"])
@@ -136,31 +161,41 @@ def transcribe_episodes():
         size_mb = os.path.getsize(episode["file"]) / (1024 * 1024)
         print(f"  📁 File size: {size_mb:.1f}MB")
 
+        transcription = None
+
+        # Try Groq first
         try:
-            transcription = transcribe_file(client, episode["file"])
-
-            with open(transcript_file, "w", encoding="utf-8") as f:
-                f.write(f"SOURCE: {episode['name']}\n")
-                f.write(f"EPISODE: {episode['title']}\n")
-                f.write(f"DATE: {episode['date']}\n")
-                f.write("-" * 60 + "\n\n")
-                f.write(transcription)
-
-            print(f"  ✅ Saved transcript ({len(transcription):,} chars) → {transcript_file}")
-
+            transcription = groq_transcribe(client, episode["file"])
+            print(f"  ✅ Groq transcript ({len(transcription):,} chars)")
         except Exception as e:
-            print(f"  ❌ Failed to transcribe: {e} — skipping")
-            skipped.append(episode["name"])
+            print(f"  ⚠️  Groq failed: {e}")
+
+        # Fall back to local whisper
+        if not transcription:
+            try:
+                transcription = local_transcribe(episode["file"])
+            except Exception as e:
+                print(f"  ❌ Local fallback also failed: {e} — skipping episode")
+                skipped.append(episode["name"])
+                continue
+
+        with open(transcript_file, "w", encoding="utf-8") as f:
+            f.write(f"SOURCE: {episode['name']}\n")
+            f.write(f"EPISODE: {episode['title']}\n")
+            f.write(f"DATE: {episode['date']}\n")
+            f.write("-" * 60 + "\n\n")
+            f.write(transcription)
+
+        print(f"  💾 Saved → {transcript_file}")
 
     if skipped:
-        print(f"\n⚠️  Skipped due to errors: {', '.join(skipped)}")
+        print(f"\n⚠️  Skipped: {', '.join(skipped)}")
 
-    # Check we have at least something to work with
     transcripts = list(Path("temp/transcripts").glob("*.txt"))
     if not transcripts:
         raise RuntimeError("No transcripts produced at all.")
 
-    print(f"\n✅ Transcription complete. {len(transcripts)} transcript(s) ready.")
+    print(f"\n✅ Done. {len(transcripts)} transcript(s) ready.")
 
 
 if __name__ == "__main__":
