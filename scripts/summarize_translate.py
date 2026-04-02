@@ -4,14 +4,14 @@ Step 3: Read all transcripts, summarize key stories, and translate to Korean
 """
 
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from pathlib import Path
 from datetime import datetime
 
 
 def summarize_and_translate():
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("emini-3.1-flash-lite-preview")
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
     # Read all transcript files
     transcript_dir = Path("temp/transcripts")
@@ -31,16 +31,16 @@ def summarize_and_translate():
 Below are transcripts from today's English-language news podcasts ({today}).
 
 Your task:
-1. Identify the 5–7 most important news stories across all transcripts
+1. Identify the 5-7 most important news stories across all transcripts
 2. Write a clear, engaging Korean-language news summary suitable for a 15-minute audio broadcast (~1,800 Korean words)
-3. Use natural, conversational Korean — not overly formal, easy to listen to
-4. Return ONLY the Korean text — no English, no preamble, no markdown
+3. Use natural, conversational Korean -- not overly formal, easy to listen to
+4. Return ONLY the Korean text -- no English, no preamble, no markdown
 
 Structure:
-- 인사말 (Opening greeting, 2–3 sentences, mention today's date)
-- 5–7 뉴스 항목, each with:
-    • 소제목 (Korean heading)
-    • 2–3 paragraphs of summary
+- 인사말 (Opening greeting, 2-3 sentences, mention today's date)
+- 5-7 뉴스 항목, each with:
+    - 소제목 (Korean heading)
+    - 2-3 paragraphs of summary
 - 마무리 인사 (Brief closing, 2 sentences)
 
 TRANSCRIPTS:
@@ -48,10 +48,11 @@ TRANSCRIPTS:
 
 Korean summary only:"""
 
-    print("[Gemini] Summarizing and translating to Korean...")
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.GenerationConfig(
+    print("[Gemini] Summarizing and translating with gemini-3.1-flash-lite-preview...")
+    response = client.models.generate_content(
+        model="gemini-3.1-flash-lite-preview",
+        contents=prompt,
+        config=types.GenerateContentConfig(
             max_output_tokens=4096,
             temperature=0.4,
         ),
@@ -63,7 +64,7 @@ Korean summary only:"""
     with open("temp/korean_script.txt", "w", encoding="utf-8") as f:
         f.write(korean_script)
 
-    print(f"✅ Korean script saved ({len(korean_script):,} characters).")
+    print(f"Korean script saved ({len(korean_script):,} characters).")
     return korean_script
 
 
