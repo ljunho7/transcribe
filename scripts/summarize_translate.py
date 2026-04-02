@@ -11,7 +11,7 @@ from datetime import datetime
 
 def summarize_and_translate():
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("emini-3.1-flash-lite-preview")
 
     # Read all transcript files
     transcript_dir = Path("temp/transcripts")
