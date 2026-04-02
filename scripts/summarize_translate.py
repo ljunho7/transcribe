@@ -36,22 +36,22 @@ def summarize_and_translate():
 
     today = datetime.now().strftime("%Y년 %m월 %d일")
 
-    prompt = f"""You are a professional news summarizer and Korean broadcast journalist.
+    prompt = f"""You are a professional news summarizer and Korean broadcast journalist focusing on economics, finance and business.
 
 Below are transcripts from today's English-language news podcasts ({today}).
 
 Your task:
-1. Identify the 5-7 most important news stories across all transcripts
-2. Write a clear, engaging Korean-language news summary suitable for a 15-minute audio broadcast (~1,800 Korean words)
+1. Identify the 5-10 most important news stories across all transcripts
+2. Write a clear, engaging Korean-language news summary suitable for a 20-minute audio broadcast (~1,800 Korean words)
 3. Use natural, conversational Korean -- not overly formal, easy to listen to
 4. Return ONLY the Korean text -- no English, no preamble, no markdown
 
 Structure:
-- 인사말 (Opening greeting, 2-3 sentences, mention today's date)
-- 5-7 뉴스 항목, each with:
+- 인사말 (Opening greeting, 1 sentence, mention today's date (US date, not Korea date))
+- 5-10 뉴스 항목, each with:
     - 소제목 (Korean heading)
     - 2-3 paragraphs of summary
-- 마무리 인사 (Brief closing, 2 sentences)
+- 마무리 인사 (Brief closing, 1 sentence)
 
 TRANSCRIPTS:
 {all_transcripts}
