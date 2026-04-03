@@ -4,7 +4,7 @@ Step 0: Fetch live market data and generate assets/background.jpg
         Rates shown as bp change vs previous day, not % return.
 """
 
-import os, random
+import os, json, random
 from datetime import datetime, timezone, timedelta
 from PIL import Image, ImageDraw, ImageFont
 
