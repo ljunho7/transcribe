@@ -2,7 +2,7 @@ name: Daily Korean News Podcast
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 6AM UTC = 2AM EDT (NY time)
+    - cron: '0 20 * * *'   # 6AM UTC = 2AM EDT (NY time)
   workflow_dispatch:
   push:
     branches:
