@@ -1,8 +1,10 @@
 """
 Step 1: Fetch the latest episode from each podcast in sources.json.
-        Only downloads episodes published within max_age_hours (default 24h).
-        Acast sphinx.acast.com URLs are rewritten to feeds.acast.com to avoid 403s.
-        Failed downloads are skipped gracefully — pipeline continues.
+        - Only downloads episodes within max_age_hours
+        - For feeds with multiple daily episodes (WSJ, Bloomberg),
+          picks the most recently published one automatically
+        - Acast sphinx.acast.com URLs rewritten to feeds.acast.com
+        - Failed downloads skipped gracefully
 """
 
 import json
@@ -10,9 +12,9 @@ import os
 import re
 import feedparser
 import requests
-from pathlib import Path
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from pathlib import Path
 
 HEADERS = {
     "User-Agent": (
@@ -22,18 +24,21 @@ HEADERS = {
     )
 }
 
-# FT News Briefing stream ID on Acast (constant — only episode ID changes)
 ACAST_STREAM_IDS = {
     "ftnewsbriefing": "621e1a5bf5df83377cc948b8",
 }
 
+# Feeds that publish multiple episodes per day
+# We scan the top N entries and pick the most recently published one
+# that is within max_age_hours
+MULTI_EPISODE_FEEDS = {
+    "WSJ What's News",
+    "Bloomberg Daybreak US",
+    "Bloomberg Daybreak Asia",
+}
+
 
 def rewrite_acast_url(url):
-    """
-    Rewrite blocked sphinx.acast.com URLs to the working feeds.acast.com format.
-    sphinx.acast.com/p/acast/s/{show}/e/{episode_id}/media.mp3
-      → feeds.acast.com/public/streams/{stream_id}/episodes/{episode_id}.mp3
-    """
     match = re.search(r"sphinx\.acast\.com/p/acast/s/([^/]+)/e/([^/]+)/media\.mp3", url)
     if match:
         show_slug = match.group(1)
@@ -41,9 +46,63 @@ def rewrite_acast_url(url):
         stream_id = ACAST_STREAM_IDS.get(show_slug)
         if stream_id:
             new_url = f"https://feeds.acast.com/public/streams/{stream_id}/episodes/{episode_id}.mp3"
-            print(f"  🔀 Rewrote Acast URL → {new_url[:80]}")
+            print(f"  🔀 Rewrote Acast URL → {new_url[:80]}", flush=True)
             return new_url
     return url
+
+
+def parse_pub_date(entry):
+    """Parse published date from a feed entry. Returns datetime or None."""
+    if entry.get("published"):
+        try:
+            pub_date = parsedate_to_datetime(entry["published"])
+            if pub_date.tzinfo is None:
+                pub_date = pub_date.replace(tzinfo=timezone.utc)
+            return pub_date
+        except Exception:
+            pass
+    return None
+
+
+def pick_episode(feed, name, max_age_hours):
+    """
+    Pick the best episode from a feed.
+    - For multi-episode feeds: scan top 10 entries, pick the most recently
+      published one within max_age_hours.
+    - For single-episode feeds: just take entries[0] if within max_age_hours.
+    Returns (entry, age_hours) or (None, None).
+    """
+    now = datetime.now(timezone.utc)
+    entries = feed.entries[:10]
+
+    if name in MULTI_EPISODE_FEEDS:
+        # Sort by publish date descending, pick newest within limit
+        dated = []
+        for entry in entries:
+            pub_date = parse_pub_date(entry)
+            if pub_date:
+                age_h = (now - pub_date).total_seconds() / 3600
+                dated.append((age_h, entry))
+
+        dated.sort(key=lambda x: x[0])  # Newest first (smallest age)
+
+        for age_h, entry in dated:
+            if age_h <= max_age_hours:
+                return entry, age_h
+
+        return None, None
+    else:
+        # Standard: just check the latest entry
+        if not entries:
+            return None, None
+        entry = entries[0]
+        pub_date = parse_pub_date(entry)
+        if pub_date:
+            age_h = (now - pub_date).total_seconds() / 3600
+            if age_h <= max_age_hours:
+                return entry, age_h
+            return None, None
+        return entry, None  # No date — include anyway
 
 
 def fetch_latest_episodes():
@@ -69,28 +128,18 @@ def fetch_latest_episodes():
                 print(f"  ⚠️  No entries found", flush=True)
                 continue
 
-            latest = feed.entries[0]
+            latest, age_h = pick_episode(feed, name, max_age_hours)
 
-            # Parse published date
-            pub_date = None
-            if latest.get("published"):
-                try:
-                    pub_date = parsedate_to_datetime(latest["published"])
-                    if pub_date.tzinfo is None:
-                        pub_date = pub_date.replace(tzinfo=timezone.utc)
-                except Exception:
-                    pub_date = None
+            if latest is None:
+                print(f"  ⏭️  No episode within {max_age_hours}h limit — skipping", flush=True)
+                skipped.append(name)
+                continue
 
-            # Check age
-            if pub_date:
-                age_hours = (datetime.now(timezone.utc) - pub_date).total_seconds() / 3600
-                if age_hours > max_age_hours:
-                    print(f"  ⏭️  Skipping — {age_hours:.0f}h old (limit: {max_age_hours}h)", flush=True)
-                    skipped.append(name)
-                    continue
-                print(f"  ✅ Episode age: {age_hours:.1f}h — within limit", flush=True)
+            title = latest.get("title", "")
+            if age_h is not None:
+                print(f"  ✅ '{title}' — {age_h:.1f}h old", flush=True)
             else:
-                print(f"  ⚠️  No publish date — downloading anyway", flush=True)
+                print(f"  ✅ '{title}' — (no publish date)", flush=True)
 
             # Find MP3 URL
             mp3_url = None
@@ -103,10 +152,8 @@ def fetch_latest_episodes():
                 print(f"  ⚠️  No audio enclosure found", flush=True)
                 continue
 
-            # Rewrite blocked Acast URLs
             mp3_url = rewrite_acast_url(mp3_url)
 
-            # Download
             safe_name = (
                 name.replace(" ", "_")
                     .replace("'", "").replace("'", "")
@@ -131,7 +178,7 @@ def fetch_latest_episodes():
             downloaded.append({
                 "name": name,
                 "file": filename,
-                "title": latest.get("title", ""),
+                "title": title,
                 "date": latest.get("published", ""),
                 "priority": priority,
             })
@@ -139,14 +186,10 @@ def fetch_latest_episodes():
         except requests.exceptions.HTTPError as e:
             print(f"  ❌ HTTP error: {e} — skipping", flush=True)
             failed.append(name)
-        except requests.exceptions.ConnectionError as e:
-            print(f"  ❌ Connection error: {e} — skipping", flush=True)
-            failed.append(name)
         except Exception as e:
-            print(f"  ❌ Unexpected error: {e} — skipping", flush=True)
+            print(f"  ❌ Error: {e} — skipping", flush=True)
             failed.append(name)
 
-    # Sort by priority
     downloaded.sort(key=lambda x: x.get("priority", 5))
 
     with open("temp/episodes.json", "w") as f:
@@ -154,11 +197,11 @@ def fetch_latest_episodes():
 
     print(f"\n{'='*50}", flush=True)
     print(f"✅ Downloaded : {len(downloaded)} episode(s)", flush=True)
-    print(f"⏭️  Skipped   : {len(skipped)} stale episode(s)", flush=True)
-    print(f"❌ Failed     : {len(failed)} episode(s) {failed if failed else ''}", flush=True)
+    print(f"⏭️  Skipped   : {len(skipped)} — {skipped if skipped else ''}", flush=True)
+    print(f"❌ Failed     : {len(failed)} — {failed if failed else ''}", flush=True)
 
     if not downloaded:
-        raise RuntimeError("No episodes downloaded. Nothing to transcribe.")
+        raise RuntimeError("No episodes downloaded.")
 
     return downloaded
 
