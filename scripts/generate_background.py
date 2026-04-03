@@ -205,7 +205,7 @@ def generate_background(equity, fx, crypto, rates):
     random.seed(42)
     val = 200
     pts = []
-    cx0, cy0, cw, ch = int(W*0.54), H-260, int(W*0.42), 200
+    cx0, cy0, cw, ch = int(W*0.54), H-200, int(W*0.42), 160
     for i in range(90):
         val += random.randint(-5, 12)
         x = cx0 + int(i/89*cw)
@@ -232,7 +232,7 @@ def generate_background(equity, fx, crypto, rates):
 
     # Decorative candlesticks
     random.seed(7)
-    cx = int(W*0.54) - 110
+    cx = int(W*0.54) - 100
     for _ in range(7):
         bh  = random.randint(12,40)
         by  = cy0 - 60 + random.randint(-30,30)
