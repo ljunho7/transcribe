@@ -73,46 +73,30 @@ def fetch_crypto():
 
 
 def fetch_rates():
-    """US 10yr + Fed Funds — returns (rate_pct, bp_change)"""
-    import yfinance as yf
+    """2yr, 5yr, 10yr, 30yr + Fed Funds via FRED. Published EOD ~4-5PM ET."""
     import requests
     result = {}
-
-    # US 10yr Treasury
-    try:
-        h = yf.Ticker("^TNX").history(period="2d")
-        if len(h) >= 2:
-            prev = h["Close"].iloc[-2]
-            curr = h["Close"].iloc[-1]
-            bp   = (curr - prev) * 100
-            result["미국 10년물"] = (curr, bp)
-    except Exception as e:
-        print(f"  ⚠️  10yr: {e}", flush=True)
-
-    # US 30yr Treasury
-    try:
-        h = yf.Ticker("^TYX").history(period="2d")
-        if len(h) >= 2:
-            prev = h["Close"].iloc[-2]
-            curr = h["Close"].iloc[-1]
-            bp   = (curr - prev) * 100
-            result["미국 30년물"] = (curr, bp)
-    except Exception as e:
-        print(f"  ⚠️  30yr: {e}", flush=True)
-
-    # Fed Funds target upper rate via FRED (no API key needed)
-    try:
-        url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU"
-        r   = requests.get(url, timeout=10)
-        lines = r.text.strip().split("\n")
-        # Last two rows: date,value
-        prev_val = float(lines[-2].split(",")[1])
-        curr_val = float(lines[-1].split(",")[1])
-        bp = (curr_val - prev_val) * 100
-        result["연방기금금리"] = (curr_val, bp)
-    except Exception as e:
-        print(f"  ⚠️  Fed funds: {e}", flush=True)
-
+    for label, series in [
+        ("미국 2년물",   "DGS2"),
+        ("미국 5년물",   "DGS5"),
+        ("미국 10년물",  "DGS10"),
+        ("미국 30년물",  "DGS30"),
+        ("연방기금금리", "DFEDTARU"),
+    ]:
+        try:
+            r = requests.get(
+                f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}",
+                timeout=10
+            )
+            valid = [l for l in r.text.strip().split("\n")
+                     if "," in l and l.split(",")[1].strip() not in ("", ".")]
+            curr_val = float(valid[-1].split(",")[1])
+            prev_val = float(valid[-2].split(",")[1])
+            bp = (curr_val - prev_val) * 100
+            result[label] = (curr_val, bp)
+            print(f"  ✅ {label}: {curr_val:.2f}%  {bp:+.1f}bp", flush=True)
+        except Exception as e:
+            print(f"  ⚠️  {label} ({series}) failed: {e}", flush=True)
     return result
 
 
