@@ -34,10 +34,12 @@ def fetch_equity():
     result = {}
     for label, sym in [("S&P 500","^GSPC"),("NASDAQ","^IXIC"),("DOW","^DJI"),("반도체(SOX)","^SOX")]:
         try:
-            h = yf.Ticker(sym).history(period="2d")
+            h = yf.Ticker(sym).history(period="5d")
+            print(f"  {label}: {len(h)} rows", flush=True)
             if len(h) >= 2:
                 prev, curr = h["Close"].iloc[-2], h["Close"].iloc[-1]
                 result[label] = (curr, (curr-prev)/prev*100)
+                print(f"    ✅ {curr:.2f}  {(curr-prev)/prev*100:+.2f}%", flush=True)
         except Exception as e:
             print(f"  ⚠️  {label}: {e}", flush=True)
     return result
@@ -49,10 +51,12 @@ def fetch_fx():
     result = {}
     for label, sym in [("USD/KRW","KRW=X"),("EUR/USD","EURUSD=X"),("DXY","DX-Y.NYB")]:
         try:
-            h = yf.Ticker(sym).history(period="2d")
+            h = yf.Ticker(sym).history(period="5d")
+            print(f"  {label}: {len(h)} rows", flush=True)
             if len(h) >= 2:
                 prev, curr = h["Close"].iloc[-2], h["Close"].iloc[-1]
                 result[label] = (curr, (curr-prev)/prev*100)
+                print(f"    ✅ {curr:.4f}  {(curr-prev)/prev*100:+.2f}%", flush=True)
         except Exception as e:
             print(f"  ⚠️  {label}: {e}", flush=True)
     return result
@@ -64,9 +68,11 @@ def fetch_crypto():
     result = {}
     try:
         h = yf.Ticker("BTC-USD").history(period="2d")
+        print(f"  BTC: {len(h)} rows", flush=True)
         if len(h) >= 2:
             prev, curr = h["Close"].iloc[-2], h["Close"].iloc[-1]
             result["비트코인"] = (curr, (curr-prev)/prev*100)
+            print(f"    ✅ ${curr:,.0f}  {(curr-prev)/prev*100:+.2f}%", flush=True)
     except Exception as e:
         print(f"  ⚠️  BTC: {e}", flush=True)
     return result
@@ -269,9 +275,15 @@ def generate_background(equity, fx, crypto, rates):
         py = draw_group(draw,"외환 (FX)",     fx,      px, py, fgt, fs, fgt)
     if crypto:
         py = draw_group(draw,"암호화폐",      crypto,  px, py, fgt, fs, fgt)
+
+    print(f"  [Draw] equity={len(equity)} fx={len(fx)} crypto={len(crypto)} rates={len(rates)} py_before_rates={py}", flush=True)
+
     if rates:
         py = draw_group(draw,"금리 (bp 변화)", rates,  px, py, fgt, fs, fgt,
                         is_rates=True)
+        print(f"  [Draw] rates drawn, py_after={py}", flush=True)
+    else:
+        print(f"  [Draw] rates dict is EMPTY — skipping", flush=True)
 
     # Bottom
     draw.rectangle([(0,H-72),(W,H)], fill=(10,16,30))
