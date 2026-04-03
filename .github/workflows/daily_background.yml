@@ -38,12 +38,15 @@ jobs:
       - name: Generate S&P 500 movers image
         run: python -u scripts/generate_movers.py
 
+      - name: Generate S&P 500 sector map
+        run: python -u scripts/generate_sectors.py
+
       - name: Commit and push updated background
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git add assets/background.jpg assets/movers.jpg
+          git add assets/background.jpg assets/movers.jpg assets/sectors.jpg
           git diff --staged --quiet || git commit -m "chore: update background $(date -u +'%Y-%m-%d')"
           git pull --rebase origin main
           git push
