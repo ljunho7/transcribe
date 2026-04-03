@@ -78,16 +78,27 @@ def fetch_rates():
     import requests
     result = {}
 
-    # US 10yr Treasury (^TNX quotes yield * 10, so divide by 10)
+    # US 10yr Treasury
     try:
         h = yf.Ticker("^TNX").history(period="2d")
         if len(h) >= 2:
-            prev = h["Close"].iloc[-2] / 10
-            curr = h["Close"].iloc[-1] / 10
-            bp   = (curr - prev) * 100   # 1% = 100bp
+            prev = h["Close"].iloc[-2]
+            curr = h["Close"].iloc[-1]
+            bp   = (curr - prev) * 100
             result["미국 10년물"] = (curr, bp)
     except Exception as e:
         print(f"  ⚠️  10yr: {e}", flush=True)
+
+    # US 30yr Treasury
+    try:
+        h = yf.Ticker("^TYX").history(period="2d")
+        if len(h) >= 2:
+            prev = h["Close"].iloc[-2]
+            curr = h["Close"].iloc[-1]
+            bp   = (curr - prev) * 100
+            result["미국 30년물"] = (curr, bp)
+    except Exception as e:
+        print(f"  ⚠️  30yr: {e}", flush=True)
 
     # Fed Funds target upper rate via FRED (no API key needed)
     try:
@@ -121,10 +132,12 @@ def fetch_all():
 # ── 2. Draw helpers ───────────────────────────────────────────────────────
 
 def pct_color(chg):
-    return KO_RED if chg >= 0 else KO_BLUE
+    if abs(chg) < 0.001: return WHITE_DIM
+    return KO_RED if chg > 0 else KO_BLUE
 
 def pct_arrow(chg):
-    return "▲" if chg >= 0 else "▼"
+    if abs(chg) < 0.001: return " "
+    return "▲" if chg > 0 else "▼"
 
 def fmt_price(label, price):
     if "KRW" in label:          return f"{price:,.1f}"
