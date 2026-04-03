@@ -1,51 +1,54 @@
 """
-Debug: test S&P 500 specific top movers via Yahoo Finance screener
+Debug: fetch S&P 500 tickers from GitHub (reliable, no auth),
+then get top movers via yfinance batch download.
 """
-import requests, json
+import requests
+import yfinance as yf
 
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    "Accept": "application/json",
-}
+print("=" * 60)
+print("FETCHING S&P 500 TICKERS FROM GITHUB")
+print("=" * 60)
 
-# Try different screener IDs that filter to S&P 500 only
-screeners = [
-    ("SP500 gainers", "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=day_gainers&count=10&fields=symbol,shortName,regularMarketPrice,regularMarketChangePercent&region=US&lang=en-US"),
-    ("SP500 losers",  "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=day_losers&count=10&fields=symbol,shortName,regularMarketPrice,regularMarketChangePercent&region=US&lang=en-US"),
-]
+# datahub.io hosts a clean S&P 500 CSV updated regularly
+url = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
+r = requests.get(url, timeout=10)
+print(f"Status: {r.status_code}")
+lines = r.text.strip().split("\n")[1:]  # skip header
+tickers = [l.split(",")[0].replace(".", "-") for l in lines]
+print(f"Tickers: {len(tickers)} found")
+print(f"Sample: {tickers[:10]}")
 
-# Also try custom screener with S&P 500 filter
-custom_url = "https://query1.finance.yahoo.com/v1/finance/screener?crumb=&lang=en-US&region=US&formatted=true&corsDomain=finance.yahoo.com"
-custom_body = {
-    "size": 10,
-    "offset": 0,
-    "sortField": "percentchange",
-    "sortType": "DESC",
-    "quoteType": "EQUITY",
-    "query": {
-        "operator": "AND",
-        "operands": [
-            {"operator": "eq", "operands": ["exchange", "NMS"]},
-            {"operator": "gt", "operands": ["intradaymarketcap", 10000000000]},  # >$10B market cap
-        ]
-    },
-    "userId": "",
-    "userIdType": "guid"
-}
+print("\n" + "=" * 60)
+print("FETCHING TOP MOVERS VIA YFINANCE BATCH")
+print("=" * 60)
 
-for name, url in screeners:
-    r = requests.get(url, headers=headers, timeout=10)
-    print(f"\n{name}: HTTP {r.status_code}")
-    if r.status_code == 200:
-        data = r.json()
-        quotes = data.get("finance", {}).get("result", [{}])[0].get("quotes", [])
-        for q in quotes:
-            print(f"  {q.get('symbol'):8} {q.get('regularMarketChangePercent', 0):+7.2f}%  {q.get('shortName','')[:30]}")
+# Download all S&P 500 in one batch call - much faster than one by one
+import pandas as pd
+data = yf.download(tickers, period="2d", auto_adjust=True, progress=False, group_by="ticker")
 
-# Custom screener - large cap gainers (S&P 500 proxy)
-print("\n\nCustom large-cap screener (>$10B, sorted by % change DESC):")
-r = requests.post(custom_url, json=custom_body, headers={**headers, "Content-Type": "application/json"}, timeout=10)
-print(f"HTTP {r.status_code}")
-print(r.text[:1000])
+# Calculate % change for each ticker
+changes = {}
+for sym in tickers:
+    try:
+        if sym in data.columns.get_level_values(0):
+            closes = data[sym]["Close"].dropna()
+            if len(closes) >= 2:
+                chg = (closes.iloc[-1] - closes.iloc[-2]) / closes.iloc[-2] * 100
+                name = sym
+                changes[sym] = (closes.iloc[-1], chg)
+    except Exception:
+        pass
+
+print(f"Got data for {len(changes)} tickers")
+
+sorted_chg = sorted(changes.items(), key=lambda x: x[1][1])
+
+print("\nTop 10 Losers:")
+for sym, (price, chg) in sorted_chg[:10]:
+    print(f"  {sym:8} {chg:+.2f}%  ${price:.2f}")
+
+print("\nTop 10 Gainers:")
+for sym, (price, chg) in sorted_chg[-10:][::-1]:
+    print(f"  {sym:8} {chg:+.2f}%  ${price:.2f}")
 
 print("\n✅ Done")
