@@ -183,4 +183,3 @@ if __name__ == "__main__":
     with open("assets/market_data.json", "w") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     print("✅ Movers saved → assets/market_data.json", flush=True)
-    return gainers, losers
