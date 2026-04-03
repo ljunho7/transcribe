@@ -9,7 +9,7 @@ Required GitHub Secrets:
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
@@ -37,8 +37,9 @@ def upload_to_youtube():
     youtube = build("youtube", "v3", credentials=creds)
 
     # Generate title and description from today's date and script preview
-    today_kr = datetime.now().strftime("%Y년 %m월 %d일")
-    today_en = datetime.now().strftime("%Y-%m-%d")
+    KST = timezone(timedelta(hours=9))
+    today_kr = datetime.now(KST).strftime("%Y년 %m월 %d일")
+    today_en = datetime.now(KST).strftime("%Y-%m-%d")
 
     with open("temp/korean_script.txt", "r", encoding="utf-8") as f:
         script_preview = f.read()[:300].strip()
@@ -49,9 +50,9 @@ def upload_to_youtube():
             "description": (
                 f"📰 {today_kr} 주요 글로벌 뉴스를 한국어로 요약해드립니다.\n\n"
                 f"{script_preview}...\n\n"
-                f"#뉴스 #한국어뉴스 #글로벌뉴스 #경제뉴스 #시사 #{today_en.replace('-', '')}"
+                f"#뉴스 #한국어뉴스 #글로벌뉴스 #경제뉴스 #시사 #{today_en.replace("-", "")}"  
             ),
-            "tags": ["뉴스", "한국어뉴스", "글로벌뉴스", "WSJ", "경제", "시사", "뉴스요약"],
+            "tags": ["뉴스", "한국어뉴스", "글로벌뉴스", "경제", "시사", "뉴스요약"],
             "categoryId": "25",  # News & Politics
             "defaultLanguage": "ko",
         },
