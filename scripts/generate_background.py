@@ -247,8 +247,11 @@ def generate_background(equity, fx, crypto, rates):
     fgt = ImageFont.truetype(KO_REG,   18)  # group title
 
     # ── Left panel ────────────────────────────────────────────────────────
-    KST = timezone(timedelta(hours=9))
+    from zoneinfo import ZoneInfo
+    KST    = ZoneInfo("Asia/Seoul")
+    NY     = ZoneInfo("America/New_York")
     now_kst = datetime.now(KST)
+    now_ny  = datetime.now(NY)
 
     draw.ellipse([(80,118),(96,134)], fill=GREEN)
     draw.text((110,112), "미국 증시 마감 후 브리핑", font=fr, fill=WHITE_DIM)
@@ -263,7 +266,7 @@ def generate_background(equity, fx, crypto, rates):
 
     # Header
     draw.text((px, py),
-              f"시장 데이터  ·  {now_kst.strftime('%Y.%m.%d  %H:%M')} KST",
+              f"시장 데이터  ·  {now_ny.strftime('%m/%d %H:%M')} NY시간",
               font=fs, fill=(55,70,105))
     py += 32
     draw.line([(px, py),(px+560, py)], fill=(28,38,65), width=1)
