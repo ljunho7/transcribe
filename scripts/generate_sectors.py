@@ -4,7 +4,7 @@ Uses SPDR sector ETFs as proxies. Box size = approx sector weight in S&P 500.
 Color = daily return (Korean convention: red=up, blue=down).
 """
 
-import os, requests
+import os, json, requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
@@ -205,6 +205,18 @@ def generate_sector_image(sectors):
     os.makedirs("assets", exist_ok=True)
     img.save(OUTPUT, "JPEG", quality=95)
     print(f"✅ Sector map saved → {OUTPUT}", flush=True)
+
+    # Append sectors to market_data.json
+    try:
+        with open("assets/market_data.json") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+    data["sectors"] = {etf: {"ko": info["ko"], "chg_pct": round(info["chg"],2)}
+                       for etf, info in sectors.items()}
+    with open("assets/market_data.json", "w") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    print("✅ Sectors saved → assets/market_data.json", flush=True)
 
 
 if __name__ == "__main__":

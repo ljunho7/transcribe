@@ -261,6 +261,7 @@ def generate_background(equity, fx, crypto, rates):
     draw.text((80,490),  "글로벌 경제 · 금융 · 비즈니스 핵심 뉴스",
               font=fr, fill=(90,100,130))
 
+
     # ── Right panel: grouped market data ──────────────────────────────────
     px, py = int(W*0.525), 55
 
@@ -298,6 +299,17 @@ def generate_background(equity, fx, crypto, rates):
     os.makedirs("assets", exist_ok=True)
     img.save("assets/background.jpg", "JPEG", quality=95)
     print("✅ Background saved → assets/background.jpg", flush=True)
+
+    # Save market data for script generation
+    market_json = {
+        "equity":  {k: {"price": round(v[0],2), "chg_pct": round(v[1],2)} for k,v in equity.items()},
+        "fx":      {k: {"price": round(v[0],4), "chg_pct": round(v[1],2)} for k,v in fx.items()},
+        "crypto":  {k: {"price": round(v[0],0), "chg_pct": round(v[1],2)} for k,v in crypto.items()},
+        "rates":   {k: {"rate": round(v[0],2),  "chg_bp":  round(v[1],1)} for k,v in rates.items()},
+    }
+    with open("assets/market_data.json", "w") as f:
+        json.dump(market_json, f, ensure_ascii=False, indent=2)
+    print("✅ Market data saved → assets/market_data.json", flush=True)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────

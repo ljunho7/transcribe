@@ -3,7 +3,7 @@ Generates assets/movers.jpg — S&P 500 top 10 gainers and losers for the day.
 Used as a second daily image (separate from background.jpg).
 """
 
-import os, requests
+import os, json, requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
@@ -151,6 +151,20 @@ def generate_movers_image(gainers, losers):
     img.save(OUTPUT, "JPEG", quality=95)
     print(f"✅ Movers image saved → {OUTPUT}", flush=True)
 
+    # Append movers to market_data.json
+    try:
+        with open("assets/market_data.json") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+    data["gainers"] = [{"symbol": s, "price": round(p,2), "chg_pct": round(c,2), "name": n}
+                       for s, p, c, n in gainers]
+    data["losers"]  = [{"symbol": s, "price": round(p,2), "chg_pct": round(c,2), "name": n}
+                       for s, p, c, n in losers]
+    with open("assets/market_data.json", "w") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    print("✅ Movers appended → assets/market_data.json", flush=True)
+
 
 # ── Main ──────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
@@ -158,3 +172,15 @@ if __name__ == "__main__":
     gainers, losers = fetch_movers()
     print("[Movers] Generating image...", flush=True)
     generate_movers_image(gainers, losers)
+    # Save to market_data.json
+    try:
+        with open("assets/market_data.json") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+    data["gainers"] = [{"symbol": s, "price": round(p,2), "chg_pct": round(c,2), "name": n} for s,p,c,n in gainers]
+    data["losers"]  = [{"symbol": s, "price": round(p,2), "chg_pct": round(c,2), "name": n} for s,p,c,n in losers]
+    with open("assets/market_data.json", "w") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    print("✅ Movers saved → assets/market_data.json", flush=True)
+    return gainers, losers

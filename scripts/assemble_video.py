@@ -1,130 +1,180 @@
 """
-Step 5: Assemble final video.
-        - Parses korean_script.txt to extract story headlines (소제목)
-        - Estimates timestamp for each story based on character count + TTS speed
-        - Generates a left-panel title card per story
-        - Composites with static right half of background.jpg
-        - FFmpeg assembles into final MP4 with smooth crossfades
+Step 5: Assemble final video with 4 sections:
+  1. [시장개요]  → full background.jpg (market overview)
+  2. [주요등락]  → full movers.jpg
+  3. [섹터분석]  → full sectors.jpg
+  4. [뉴스]     → left story card + right half of background.jpg (per story)
 """
 
-import os
-import re
-import subprocess
-import json
+import os, re, subprocess
 from PIL import Image, ImageDraw, ImageFont
 
-BACKGROUND   = "assets/background.jpg"
-AUDIO        = "temp/korean_audio.mp3"
-SCRIPT       = "temp/korean_script.txt"
-OUTPUT       = "temp/final_video.mp4"
-FRAMES_DIR   = "temp/frames"
+BACKGROUND = "assets/background.jpg"
+MOVERS     = "assets/movers.jpg"
+SECTORS    = "assets/sectors.jpg"
+AUDIO      = "temp/korean_audio.mp3"
+SCRIPT     = "temp/korean_script.txt"
+OUTPUT     = "temp/final_video.mp4"
+FRAMES_DIR = "temp/frames"
 
-W, H         = 1920, 1080
-LEFT_W       = int(W * 0.50)   # Left panel width
-TTS_SPEED    = 1.5             # Speed factor applied to audio
-CHARS_PER_SEC = 7.0            # Korean TTS chars/sec before speed-up
-FADE_SECS    = 0.5             # Crossfade duration between cards
+W, H       = 1920, 1080
+LEFT_W     = W // 2
+TTS_SPEED  = 1.5
+CPS        = 7.0       # chars/sec before speedup (calibrated for Korean TTS)
+FADE       = 0.4       # crossfade seconds
 
 FONTS   = "/usr/share/fonts/opentype/noto"
 KO_BOLD = f"{FONTS}/NotoSansCJK-Bold.ttc"
 KO_REG  = f"{FONTS}/NotoSansCJK-Regular.ttc"
 
-DARK      = (8,  12,  22)
-GREEN     = (0,  200, 110)
-WHITE     = (255, 255, 255)
-WHITE_DIM = (190, 200, 220)
-GRAY      = ( 55,  65,  85)
+DARK     = (8,  12,  22)
+GREEN    = (0, 200, 110)
+WHITE    = (255, 255, 255)
+WHITE_DIM= (190, 200, 220)
+GRAY     = ( 55,  65,  85)
 
 
-# ── 1. Parse script into stories ──────────────────────────────────────────
+# ── 1. Parse script into sections ─────────────────────────────────────────
 
-def parse_stories(script_text):
+def parse_script(text):
     """
-    Extract (headline, body) pairs from Korean script.
-    Headlines are lines that are short (< 30 chars) and not part of
-    the opening/closing greeting.
+    Returns list of segments:
+    [{"type": "full"|"story", "image": path, "headline": str, "text": str}]
     """
-    lines = script_text.strip().split("\n")
+    TAGS = ["[시장개요]", "[주요등락]", "[섹터분석]", "[뉴스]"]
+    IMAGE_MAP = {
+        "[시장개요]": BACKGROUND,
+        "[주요등락]": MOVERS,
+        "[섹터분석]": SECTORS,
+    }
+
+    # Split text by section tags
+    sections = {}
+    current_tag = None
+    current_lines = []
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if stripped in TAGS:
+            if current_tag:
+                sections[current_tag] = "\n".join(current_lines).strip()
+            current_tag = stripped
+            current_lines = []
+        else:
+            current_lines.append(line)
+    if current_tag:
+        sections[current_tag] = "\n".join(current_lines).strip()
+
+    segments = []
+
+    # Opening greeting (text before first tag)
+    intro_match = re.split(r'\[시장개요\]', text, maxsplit=1)
+    intro_text = intro_match[0].strip() if len(intro_match) > 1 else ""
+
+    # 1-3: Full-screen sections
+    for tag in ["[시장개요]", "[주요등락]", "[섹터분석]"]:
+        body = sections.get(tag, "")
+        if tag == "[시장개요]" and intro_text:
+            body = intro_text + "\n\n" + body
+        if body.strip():
+            segments.append({
+                "type":     "full",
+                "image":    IMAGE_MAP[tag],
+                "headline": tag,
+                "text":     body,
+            })
+
+    # 4: News stories — parse individual headlines
+    news_text = sections.get("[뉴스]", "")
+    if news_text:
+        stories = parse_news_stories(news_text)
+        for story in stories:
+            segments.append({
+                "type":     "story",
+                "image":    BACKGROUND,
+                "headline": story["headline"],
+                "text":     story["text"],
+            })
+
+    return segments
+
+
+def parse_news_stories(text):
+    """Extract individual stories from the [뉴스] section."""
+    lines = text.strip().split("\n")
     stories = []
-    current_headline = None
+    current_h = None
     current_body = []
-
-    # Skip opening greeting (인사말) — usually first 1-3 short lines
-    intro_done = False
-    intro_char_budget = 150
+    intro_budget = 200  # skip opening lines
 
     for line in lines:
         line = line.strip()
         if not line:
             continue
 
-        # Detect headline: short line (< 35 chars), not ending in period
-        is_headline = (
-            len(line) < 35
-            and not line.endswith(".")
-            and not line.endswith("다.")
-            and not line.endswith("다")
-            and len(line) > 3
-        )
-
-        if not intro_done:
-            intro_char_budget -= len(line)
-            if intro_char_budget <= 0:
-                intro_done = True
+        # Skip intro text
+        if intro_budget > 0:
+            intro_budget -= len(line)
             continue
 
+        # Detect headline: short, no period at end, not too long
+        is_headline = (
+            5 < len(line) < 35
+            and not line.endswith("다.")
+            and not line.endswith("다")
+            and not line.endswith(".")
+        )
+
         if is_headline:
-            # Save previous story
-            if current_headline and current_body:
-                stories.append({
-                    "headline": current_headline,
-                    "body": " ".join(current_body),
-                })
-            current_headline = line
+            if current_h and current_body:
+                stories.append({"headline": current_h, "text": " ".join(current_body)})
+            current_h = line
             current_body = []
         else:
             current_body.append(line)
 
-    # Last story
-    if current_headline and current_body:
-        stories.append({
-            "headline": current_headline,
-            "body": " ".join(current_body),
-        })
+    if current_h and current_body:
+        stories.append({"headline": current_h, "text": " ".join(current_body)})
 
     return stories
 
 
-def estimate_timestamps(stories, script_text):
-    """
-    Estimate start time (seconds) for each story based on
-    cumulative character count and TTS playback speed.
-    """
-    # Find where each story starts in the full script
+# ── 2. Estimate timestamps ─────────────────────────────────────────────────
+
+def estimate_timestamps(segments, full_text):
+    """Estimate start time (seconds) for each segment."""
     timestamps = []
     pos = 0
-    for story in stories:
-        idx = script_text.find(story["headline"], pos)
+    for seg in segments:
+        # Find position of this segment's text in the full script
+        search = seg["headline"] if seg["type"] == "story" else seg["text"][:30]
+        idx = full_text.find(search, pos)
         if idx == -1:
             idx = pos
-        chars_before = idx
-        secs = chars_before / CHARS_PER_SEC / TTS_SPEED
+        secs = idx / CPS / TTS_SPEED
         timestamps.append(max(0.0, secs))
-        pos = idx + len(story["headline"])
+        pos = idx + len(seg["text"])
     return timestamps
 
 
-# ── 2. Generate left-panel title cards ───────────────────────────────────
+# ── 3. Generate frames ─────────────────────────────────────────────────────
+
+def make_full_frame(image_path):
+    """Full-screen frame — just use the image as-is."""
+    try:
+        img = Image.open(image_path).convert("RGB")
+        if img.size != (W, H):
+            img = img.resize((W, H), Image.LANCZOS)
+        return img
+    except Exception:
+        img = Image.new("RGB", (W, H), DARK)
+        return img
+
 
 def wrap_text(text, font, draw, max_width):
-    """Wrap text to fit within max_width pixels."""
-    words = list(text)  # Korean: split by character for wrapping
-    lines = []
-    current = ""
+    lines, current = [], ""
     for char in text:
         test = current + char
-        bbox = draw.textbbox((0,0), test, font=font)
-        if bbox[2] > max_width and current:
+        if draw.textbbox((0,0), test, font=font)[2] > max_width and current:
             lines.append(current)
             current = char
         else:
@@ -134,50 +184,47 @@ def wrap_text(text, font, draw, max_width):
     return lines
 
 
-def make_title_card(headline, card_index, total):
-    """Generate left-panel 960x1080 image for a story headline."""
-    img  = Image.new("RGB", (LEFT_W, H), DARK)
-    draw = ImageDraw.Draw(img)
+def make_story_frame(headline, card_idx, total_stories, right_bg):
+    """Left story card + right half of background."""
+    frame = right_bg.copy()
+
+    # Left panel
+    left = Image.new("RGB", (LEFT_W, H), DARK)
+    draw = ImageDraw.Draw(left)
 
     # Gradient
     for y in range(H):
         t = y / H
-        r = int(DARK[0] + 6*t)
-        g = int(DARK[1] + 8*t)
-        b = int(DARK[2] + 16*t)
-        draw.line([(0,y),(LEFT_W,y)], fill=(r,g,b))
+        draw.line([(0,y),(LEFT_W,y)],
+                  fill=(int(8+6*t), int(12+8*t), int(22+16*t)))
 
     # Grid
     for y in range(0, H, 44):
         draw.line([(0,y),(LEFT_W,y)], fill=(18,26,44))
 
-    # Left accent bar
+    # Left accent
     draw.rectangle([(0,0),(6,H)], fill=GREEN)
 
-    # Top label
     try:
         fr  = ImageFont.truetype(KO_REG,  26)
         fh  = ImageFont.truetype(KO_BOLD, 72)
-        fs  = ImageFont.truetype(KO_REG,  24)
     except:
-        fr = fh = fs = ImageFont.load_default()
+        fr = fh = ImageFont.load_default()
 
+    # Top label
     draw.ellipse([(80,118),(96,134)], fill=GREEN)
     draw.text((110,112), "미국 증시 마감 후 브리핑", font=fr, fill=WHITE_DIM)
     draw.line([(80,158),(LEFT_W-80,158)], fill=GREEN, width=2)
 
-    # Story indicator bar (thin green line at bottom of text area)
-    progress = (card_index + 1) / total
+    # Progress bar
     bar_y = H - 100
-    draw.rectangle([(80, bar_y),(LEFT_W-80, bar_y+3)], fill=(25,35,58))
-    draw.rectangle([(80, bar_y),(80 + int((LEFT_W-160)*progress), bar_y+3)],
-                   fill=GREEN)
+    progress = (card_idx + 1) / max(total_stories, 1)
+    draw.rectangle([(80,bar_y),(LEFT_W-80,bar_y+3)], fill=(25,35,58))
+    draw.rectangle([(80,bar_y),(80+int((LEFT_W-160)*progress),bar_y+3)], fill=GREEN)
 
-    # Headline — large, centered vertically
-    padding = 80
-    max_w   = LEFT_W - padding * 2
-
-    # Try fitting on 1-2 lines
+    # Headline
+    pad = 80
+    max_w = LEFT_W - pad * 2
     for font_size in [80, 66, 54, 44]:
         try:
             font = ImageFont.truetype(KO_BOLD, font_size)
@@ -189,33 +236,20 @@ def make_title_card(headline, card_index, total):
         if total_h < H * 0.45 or font_size == 44:
             break
 
-    # Draw headline lines centered
     start_y = H // 2 - total_h // 2 - 20
     for i, line in enumerate(lines):
         bbox = draw.textbbox((0,0), line, font=font)
-        lw   = bbox[2] - bbox[0]
-        x    = (LEFT_W - lw) // 2
-        y    = start_y + i * line_h
-        draw.text((x, y), line, font=font, fill=WHITE)
+        lw = bbox[2] - bbox[0]
+        draw.text(((LEFT_W-lw)//2, start_y + i*line_h), line, font=font, fill=WHITE)
 
-    # Decorative green underline under headline
-    draw.line([(padding, start_y + total_h + 20),
-               (LEFT_W - padding, start_y + total_h + 20)],
+    draw.line([(pad, start_y+total_h+20),(LEFT_W-pad, start_y+total_h+20)],
               fill=GREEN, width=2)
 
-    return img
-
-
-# ── 3. Composite left + right panels ─────────────────────────────────────
-
-def composite_frame(left_img, right_bg):
-    """Paste left card onto right half of background."""
-    frame = right_bg.copy()
-    frame.paste(left_img, (0, 0))
+    frame.paste(left, (0, 0))
     return frame
 
 
-# ── 4. Build video with FFmpeg ────────────────────────────────────────────
+# ── 4. Build video ─────────────────────────────────────────────────────────
 
 def get_audio_duration():
     result = subprocess.run([
@@ -228,109 +262,98 @@ def get_audio_duration():
 
 
 def build_video(frame_paths, timestamps, audio_duration):
-    """Use FFmpeg filter_complex to crossfade between frames."""
+    n = len(frame_paths)
 
-    if len(frame_paths) == 1:
-        # Only one story — simple static video
-        cmd = [
-            "ffmpeg", "-y",
-            "-loop", "1", "-i", frame_paths[0],
-            "-i", AUDIO,
-            "-c:v", "libx264", "-tune", "stillimage",
-            "-c:a", "aac", "-b:a", "192k",
-            "-shortest", "-pix_fmt", "yuv420p",
-            OUTPUT
-        ]
+    if n == 1:
+        cmd = ["ffmpeg", "-y",
+               "-loop", "1", "-i", frame_paths[0],
+               "-i", AUDIO,
+               "-c:v", "libx264", "-tune", "stillimage",
+               "-c:a", "aac", "-b:a", "192k",
+               "-shortest", "-pix_fmt", "yuv420p", OUTPUT]
         subprocess.run(cmd, check=True)
         return
 
-    # Build xfade filter chain
-    n = len(frame_paths)
     durations = []
     for i in range(n):
         start = timestamps[i]
         end   = timestamps[i+1] if i+1 < n else audio_duration
-        dur   = max(1.0, end - start)
-        durations.append(dur)
+        durations.append(max(1.0, end - start))
 
-    # FFmpeg inputs
     inputs = []
-    for path in frame_paths:
-        inputs += ["-loop", "1", "-t", str(durations[frame_paths.index(path)] + FADE_SECS),
-                   "-i", path]
+    for i, path in enumerate(frame_paths):
+        inputs += ["-loop", "1", "-t", str(durations[i] + FADE), "-i", path]
 
-    # Build xfade chain
     filter_parts = []
-    last_out = "0:v"
+    last = "0:v"
     for i in range(1, n):
-        offset = sum(durations[:i]) - FADE_SECS * i
-        out_label = f"xf{i}"
+        offset = sum(durations[:i]) - FADE * i
+        out = f"xf{i}"
         filter_parts.append(
-            f"[{last_out}][{i}:v]xfade=transition=fade:duration={FADE_SECS}:offset={offset:.2f}[{out_label}]"
+            f"[{last}][{i}:v]xfade=transition=fade:duration={FADE}:offset={offset:.2f}[{out}]"
         )
-        last_out = out_label
+        last = out
 
-    filter_str = ";".join(filter_parts)
-
-    cmd = (
-        ["ffmpeg", "-y"]
-        + inputs
-        + ["-i", AUDIO]
-        + ["-filter_complex", filter_str]
-        + ["-map", f"[{last_out}]", "-map", f"{n}:a"]
-        + ["-c:v", "libx264", "-preset", "fast", "-crf", "23"]
-        + ["-c:a", "aac", "-b:a", "192k"]
-        + ["-pix_fmt", "yuv420p", "-shortest"]
-        + [OUTPUT]
-    )
+    cmd = (["ffmpeg", "-y"]
+           + inputs
+           + ["-i", AUDIO]
+           + ["-filter_complex", ";".join(filter_parts)]
+           + ["-map", f"[{last}]", "-map", f"{n}:a"]
+           + ["-c:v", "libx264", "-preset", "fast", "-crf", "23"]
+           + ["-c:a", "aac", "-b:a", "192k"]
+           + ["-pix_fmt", "yuv420p", "-shortest", OUTPUT])
     subprocess.run(cmd, check=True)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def assemble():
-    print("[Assemble] Loading script and background...", flush=True)
+    print("[Assemble] Loading script...", flush=True)
 
     with open(SCRIPT, "r", encoding="utf-8") as f:
         script_text = f.read()
 
-    bg = Image.open(BACKGROUND)
-    right_bg = bg.copy()  # Full 1920x1080 — left half will be overwritten per frame
+    bg  = Image.open(BACKGROUND)
+    segments = parse_script(script_text)
 
-    # Parse stories
-    stories = parse_stories(script_text)
-    print(f"  📰 Found {len(stories)} stories", flush=True)
+    print(f"  📋 Segments:", flush=True)
+    for i, s in enumerate(segments):
+        print(f"    [{i+1}] {s['type']:6} | {s['headline'][:40]}", flush=True)
 
-    if not stories:
-        print("  ⚠️  No stories parsed — falling back to static background", flush=True)
-        stories = [{"headline": "오늘의 글로벌 경제 뉴스", "body": script_text}]
-
-    # Estimate timestamps
-    timestamps = estimate_timestamps(stories, script_text)
+    timestamps   = estimate_timestamps(segments, script_text)
     audio_duration = get_audio_duration()
-    print(f"  🎵 Audio duration: {audio_duration:.1f}s", flush=True)
+    print(f"  🎵 Audio: {audio_duration:.1f}s", flush=True)
 
-    for i, (s, t) in enumerate(zip(stories, timestamps)):
-        print(f"  [{i+1:02d}] {t:.1f}s — {s['headline']}", flush=True)
+    for i, (s, t) in enumerate(zip(segments, timestamps)):
+        print(f"    [{i+1}] {t:.1f}s — {s['headline'][:40]}", flush=True)
 
-    # Generate frames
+    # Count news stories for progress bar
+    total_stories = sum(1 for s in segments if s["type"] == "story")
+    story_idx     = 0
+
+    # Right half of background for story frames
+    right_bg = bg.copy()
+
     os.makedirs(FRAMES_DIR, exist_ok=True)
     frame_paths = []
 
-    for i, story in enumerate(stories):
-        left_card = make_title_card(story["headline"], i, len(stories))
-        frame     = composite_frame(left_card, right_bg)
-        path      = f"{FRAMES_DIR}/frame_{i:03d}.jpg"
+    for i, seg in enumerate(segments):
+        if seg["type"] == "full":
+            frame = make_full_frame(seg["image"])
+        else:
+            frame = make_story_frame(seg["headline"], story_idx, total_stories, right_bg)
+            story_idx += 1
+
+        path = f"{FRAMES_DIR}/frame_{i:03d}.jpg"
         frame.save(path, "JPEG", quality=92)
         frame_paths.append(path)
-        print(f"  🖼️  Frame {i+1}/{len(stories)} saved", flush=True)
+        print(f"  🖼️  Frame {i+1}/{len(segments)}: {seg['headline'][:40]}", flush=True)
 
-    # Build video
-    print("[Assemble] Building video with FFmpeg...", flush=True)
+    print("[Assemble] Building video...", flush=True)
     build_video(frame_paths, timestamps, audio_duration)
 
     size_mb = os.path.getsize(OUTPUT) / (1024*1024)
-    print(f"✅ Video saved → {OUTPUT} ({size_mb:.1f} MB)", flush=True)
+    print(f"✅ Video → {OUTPUT} ({size_mb:.1f} MB)", flush=True)
 
 
 if __name__ == "__main__":
