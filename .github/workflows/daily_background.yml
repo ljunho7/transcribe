@@ -2,7 +2,7 @@ name: Daily Background Generator
 
 on:
   schedule:
-    - cron: '30 20 * * 1-5'   # 8:30PM UTC = 4:30PM EDT, weekdays only (after US market close)
+    - cron: '15 21 * * 1-5'   # 9:15PM UTC = 5:15PM EDT, weekdays only (after US market close)
   workflow_dispatch:
 
 env:
