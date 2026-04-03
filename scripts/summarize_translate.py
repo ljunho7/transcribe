@@ -45,6 +45,7 @@ Your task:
 2. Write a clear, engaging Korean-language news summary suitable for a 20-minute audio broadcast (~1,800 Korean words)
 3. Use natural, conversational Korean -- not overly formal, easy to listen to
 4. Return ONLY the Korean text -- no English, no preamble, no markdown
+5. Do not use stars or bolds. 
 
 Structure:
 - 인사말 (Opening greeting, 1 sentence, mention today's date (US date, not Korea date))
