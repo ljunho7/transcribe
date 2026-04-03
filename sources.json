@@ -24,45 +24,39 @@
     "priority": 4
   },
   {
-    "name": "Economist Podcasts",
-    "rss": "https://access.acast.com/rss/ec380acc-fe13-46a0-991f-a1e508d126f8",
-    "max_age_hours": 24,
-    "priority": 5
-  },
-  {
     "name": "The Economist - The Intelligence",
     "rss": "https://rss.acast.com/theintelligencepodcast",
     "max_age_hours": 24,
-    "priority": 6
+    "priority": 5
   },
   {
     "name": "Marketplace",
     "rss": "https://feeds.publicradio.org/public_feeds/marketplace",
     "max_age_hours": 24,
-    "priority": 7
+    "priority": 6
   },
   {
     "name": "JP Morgan Making Sense",
     "rss": "https://feed.podbean.com/marketmatters/feed.xml",
     "max_age_hours": 24,
-    "priority": 8
+    "priority": 7
   },
   {
     "name": "Goldman Sachs The Markets",
     "rss": "https://feeds.megaphone.fm/GLD9322922848",
     "max_age_hours": 24,
-    "priority": 9
+    "priority": 8
   },
   {
     "name": "Goldman Sachs Exchanges",
     "rss": "https://feeds.megaphone.fm/GLD9218176758",
     "max_age_hours": 24,
-    "priority": 10
+    "priority": 9
   },
   {
     "name": "The Economist - Money Talks",
     "rss": "https://rss.acast.com/theeconomistmoneytalks",
     "max_age_hours": 24,
-    "priority": 11
+    "priority": 10
   }
 ]
