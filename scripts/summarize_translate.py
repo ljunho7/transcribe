@@ -46,6 +46,7 @@ Your task:
 3. Use natural, conversational Korean -- not overly formal, easy to listen to
 4. Return ONLY the Korean text -- no English, no preamble, no markdown
 5. Do not use stars or bolds. 
+6. No numbering
 
 Structure:
 - 인사말 (Opening greeting, 1 sentence, mention today's date (US date, not Korea date))
