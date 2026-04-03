@@ -35,11 +35,6 @@ jobs:
       - name: Pre-download faster-whisper model
         run: python -c "from faster_whisper import WhisperModel; WhisperModel('tiny', device='cpu', compute_type='int8'); print('Model ready.')"
 
-      - name: Set up Google Cloud credentials
-        run: |
-          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > /tmp/gcloud_credentials.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud_credentials.json" >> $GITHUB_ENV
-
       - name: Step 1 — Fetch latest podcast episodes
         run: python -u scripts/fetch_rss.py
 
@@ -53,7 +48,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python -u scripts/summarize_translate.py
 
-      - name: Step 4 — Generate Korean voice (Google Cloud TTS)
+      - name: Step 4 — Generate Korean voice (gTTS)
         run: python -u scripts/generate_voice.py
 
       - name: Step 5 — Assemble video (FFmpeg)
@@ -68,4 +63,4 @@ jobs:
 
       - name: Clean up temp files
         if: always()
-        run: rm -rf temp/ /tmp/gcloud_credentials.json
+        run: rm -rf temp/
