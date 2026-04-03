@@ -183,7 +183,9 @@ def generate_background(market_data):
     draw.text((110, 112), "미국 증시 마감 후 브리핑", font=fr, fill=WHITE_DIM)
     draw.text((80, 175), "월스트리트",    font=fh, fill=WHITE)
     draw.text((80, 335), "오늘의 시황",   font=fl, fill=GREEN)
-    draw.text((80, 430), "한국어 브리핑", font=fm, fill=WHITE_DIM)
+    KST = timezone(timedelta(hours=9))
+    now_kst = datetime.now(KST)
+    draw.text((80, 450), now_kst.strftime("%Y년 %m월 %d일"), font=fm, fill=GREEN)
     draw.text((80, 530), "글로벌 경제 · 금융 · 비즈니스 핵심 뉴스",
               font=fr, fill=(90, 100, 130))
 
