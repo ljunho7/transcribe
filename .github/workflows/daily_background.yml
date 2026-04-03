@@ -1,0 +1,41 @@
+name: Daily Background Generator
+
+on:
+  schedule:
+    - cron: '30 20 * * 1-5'   # 8:30PM UTC = 4:30PM EDT, weekdays only (after US market close)
+  workflow_dispatch:
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  generate-background:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install pillow yfinance
+
+      - name: Install Korean fonts
+        run: sudo apt-get install -y fonts-noto-cjk
+
+      - name: Generate background with live market data
+        run: python -u scripts/generate_background.py
+
+      - name: Commit and push updated background
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets/background.jpg
+          git diff --staged --quiet || git commit -m "chore: update background $(date -u +'%Y-%m-%d')"
+          git push
