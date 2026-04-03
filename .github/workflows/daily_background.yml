@@ -46,7 +46,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git add assets/background.jpg assets/movers.jpg assets/sectors.jpg
+          git add assets/background.jpg assets/movers.jpg assets/sectors.jpg assets/market_data.json
           git diff --staged --quiet || git commit -m "chore: update background $(date -u +'%Y-%m-%d')"
           git pull --rebase origin main
           git push
