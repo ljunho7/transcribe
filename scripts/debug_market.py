@@ -48,3 +48,21 @@ for name, sym in [
         print("  NOT ENOUGH ROWS FOR BP CALC")
 
 print("\n✅ Debug complete")
+
+print("\n" + "=" * 60)
+print("TESTING CNBC QUOTE API")
+print("=" * 60)
+
+import requests, json
+
+symbols = "US10Y|US30Y"
+url = f"https://quote.cnbc.com/quote-html-webservice/restservices/cff/quote?symbols={symbols}&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1"
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Referer": "https://www.cnbc.com/"
+}
+
+r = requests.get(url, headers=headers, timeout=10)
+print(f"Status: {r.status_code}")
+data = r.json()
+print(json.dumps(data, indent=2)[:3000])
