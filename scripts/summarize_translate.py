@@ -41,15 +41,15 @@ def summarize_and_translate():
 Below are transcripts from today's English-language news podcasts ({today}).
 
 Your task:
-1. Identify the 5-10 most important news stories across all transcripts
-2. Write a clear, engaging Korean-language news summary suitable for a 20-minute audio broadcast (~1,800 Korean words)
+1. Identify the 10~15 most important news stories across all transcripts
+2. Write a clear, engaging Korean-language news summary suitable for a 20-minute audio broadcast in Korean words
 3. Use natural, conversational Korean -- not overly formal, easy to listen to
 4. Return ONLY the Korean text -- no English, no preamble, no markdown
 5. Do not use stars or bolds. 
 
 Structure:
 - 인사말 (Opening greeting, 1 sentence, mention today's date (US date, not Korea date))
-- 5-10 뉴스 항목, each with:
+- 10~15 뉴스 항목, each with:
     - 소제목 (Korean heading)
     - 2-3 paragraphs of summary
 - 마무리 인사 (Brief closing, 1 sentence)
