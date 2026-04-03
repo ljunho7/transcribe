@@ -8,6 +8,9 @@ on:
 env:
   PYTHONUNBUFFERED: "1"
 
+permissions:
+  contents: write
+
 jobs:
   generate-background:
     runs-on: ubuntu-latest
@@ -36,6 +39,8 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git add assets/background.jpg
           git diff --staged --quiet || git commit -m "chore: update background $(date -u +'%Y-%m-%d')"
+          git pull --rebase origin main
           git push
