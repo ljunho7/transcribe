@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw, ImageFont
 BACKGROUND = "assets/background.jpg"
 MOVERS     = "assets/movers.jpg"
 SECTORS    = "assets/sectors.jpg"
+COUNTRIES  = "assets/countries.jpg"
 AUDIO      = "temp/korean_audio.mp3"
 SCRIPT     = "temp/korean_script.txt"
 OUTPUT     = "temp/final_video.mp4"
@@ -41,11 +42,12 @@ def parse_script(text):
     Returns list of segments:
     [{"type": "full"|"story", "image": path, "headline": str, "text": str}]
     """
-    TAGS = ["[시장개요]", "[주요등락]", "[섹터분석]", "[뉴스]"]
+    TAGS = ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
     IMAGE_MAP = {
         "[시장개요]": BACKGROUND,
         "[주요등락]": MOVERS,
         "[섹터분석]": SECTORS,
+        "[국가별]": COUNTRIES,
     }
 
     # Split text by section tags
@@ -71,7 +73,7 @@ def parse_script(text):
     intro_text = intro_match[0].strip() if len(intro_match) > 1 else ""
 
     # 1-3: Full-screen sections
-    for tag in ["[시장개요]", "[주요등락]", "[섹터분석]"]:
+    for tag in ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]"]:
         body = sections.get(tag, "")
         if tag == "[시장개요]" and intro_text:
             body = intro_text + "\n\n" + body
