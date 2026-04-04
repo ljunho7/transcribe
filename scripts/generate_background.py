@@ -4,7 +4,19 @@ Step 0: Fetch live market data and generate assets/background.jpg
         Rates shown as bp change vs previous day, not % return.
 """
 
-import os, json, random
+import os, json, datetime
+
+def is_weekly_mode():
+    """True on Sunday UTC = Monday KST morning. Use Friday-to-Friday weekly returns."""
+    is_sunday = datetime.datetime.utcnow().weekday() == 6
+    if is_sunday:
+        print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
+    return is_sunday
+
+def find_friday_close(history):
+    """Find the most recent Friday close in a history DataFrame."""
+    fridays = history[history.index.dayofweek == 4]
+    return fridays, random
 from datetime import datetime, timezone, timedelta
 from PIL import Image, ImageDraw, ImageFont
 
@@ -67,10 +79,18 @@ def fetch_crypto():
     import yfinance as yf
     result = {}
     try:
-        h = yf.Ticker("BTC-USD").history(period="2d")
+        period = ("10d" if is_weekly_mode() else "2d")
+        h = yf.Ticker("BTC-USD").history(period=period)
         print(f"  BTC: {len(h)} rows", flush=True)
         if len(h) >= 2:
-            prev, curr = h["Close"].iloc[-2], h["Close"].iloc[-1]
+            if is_weekly_mode():
+                fridays = h[h.index.dayofweek == 4]
+                if len(fridays) >= 2:
+                    prev, curr = fridays["Close"].iloc[-2], fridays["Close"].iloc[-1]
+                else:
+                    prev, curr = h["Close"].iloc[0], h["Close"].iloc[-1]
+            else:
+                prev, curr = h["Close"].iloc[-2], h["Close"].iloc[-1]
             result["비트코인"] = (curr, (curr-prev)/prev*100)
             print(f"    ✅ ${curr:,.0f}  {(curr-prev)/prev*100:+.2f}%", flush=True)
     except Exception as e:
