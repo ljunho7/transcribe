@@ -2,8 +2,9 @@
 Geographic grid treemap — live ETF data via yfinance.
 On Sunday UTC: uses Friday-to-Friday weekly returns.
 """
-import os, json, datetime
-import requests
+import os, json, requests
+import datetime as dt
+from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 from zoneinfo import ZoneInfo
 
@@ -33,7 +34,7 @@ NAMES = {
 }
 
 def is_weekly_mode():
-    is_sunday = datetime.datetime.utcnow().weekday() == 6
+    is_sunday = dt.datetime.utcnow().weekday() == 6
     if is_sunday:
         print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
     return is_sunday
