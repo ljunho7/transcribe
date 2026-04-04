@@ -3,6 +3,7 @@ Geographic grid treemap — live ETF data via yfinance.
 On Sunday UTC: uses Friday-to-Friday weekly returns.
 """
 import os, json, datetime
+import requests
 from PIL import Image, ImageDraw, ImageFont
 from zoneinfo import ZoneInfo
 
