@@ -1,0 +1,48 @@
+name: Debug from Translations (Skip Steps 1-2 + Pass 1)
+
+on:
+  workflow_dispatch:
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          sudo apt-get install -y ffmpeg fonts-noto-cjk
+
+      - name: Setup temp dirs
+        run: mkdir -p temp/audio temp/clips temp/transcripts
+
+      - name: Load pre-translated Korean texts
+        run: cp test_data/translations/*.txt temp/transcripts/
+
+      - name: Step 3b — Generate news from translations (skip Pass 1)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -u scripts/debug_call2.py
+
+      - name: Step 4 — Generate voice
+        run: python -u scripts/generate_voice.py
+
+      - name: Step 5 — Assemble video
+        run: python -u scripts/assemble_video.py
+
+      - name: Upload video artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-video-${{ github.run_number }}
+          path: temp/final_video.mp4
+          retention-days: 3
