@@ -41,6 +41,9 @@ jobs:
       - name: Generate S&P 500 sector map
         run: python -u scripts/generate_sectors.py
 
+      - name: Generate Country map
+        run: python -u scripts/generate_countries.py
+        
       - name: Commit and push updated background
         run: |
           git config user.name  "github-actions[bot]"
