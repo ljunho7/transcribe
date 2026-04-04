@@ -1,12 +1,12 @@
 """
 Geographic grid treemap — tighter grids, smaller font fallbacks.
 """
-import math
+import os, json, math
 from PIL import Image, ImageDraw, ImageFont
 from zoneinfo import ZoneInfo
 from datetime import datetime
 
-OUTPUT = "/mnt/user-data/outputs/country_regional_treemap.jpg"
+OUTPUT = "assets/countries.jpg"
 FONTS  = "/usr/share/fonts/opentype/noto"
 KO_BOLD= f"{FONTS}/NotoSansCJK-Bold.ttc"
 KO_REG = f"{FONTS}/NotoSansCJK-Regular.ttc"
@@ -226,7 +226,22 @@ def generate():
     draw.text((1480,  ly), "iShares / VanEck / GlobalX ETF  ·  USD",
               font=fmono, fill=GRAY)
 
+    os.makedirs("assets", exist_ok=True)
     img.save(OUTPUT, "JPEG", quality=95)
     print(f"✅ Saved → {OUTPUT}")
+
+    # Append countries data to market_data.json
+    try:
+        with open("assets/market_data.json") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+    data["countries"] = {
+        ticker: {"ko": ko, "chg_pct": round(chg, 2)}
+        for ticker, (ko, chg) in DATA.items()
+    }
+    with open("assets/market_data.json", "w") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    print("✅ Countries saved → assets/market_data.json", flush=True)
 
 generate()
