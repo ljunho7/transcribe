@@ -233,31 +233,44 @@ def generate_map(countries):
         draw.rectangle([(rx+PAD+4,ry+PAD+4),(rx+PAD+30,ry+PAD+18)], fill=badge_col)
         draw.text((rx+PAD+6,ry+PAD+4), v["region"], font=fmono, fill=(180,200,230))
 
-        # Korean name
-        if area > 150000:
-            fko = fm
-        elif area > 40000:
-            fko = fr
-        else:
-            fko = fmono
-
+        # Korean name + % change — always show, scale font to box size
         ko_text = v["ko"]
-        bk = draw.textbbox((0,0), ko_text, font=fko)
-        tw = bk[2]-bk[0]
-        draw.text((cx-tw//2, cy-22), ko_text, font=fko, fill=WHITE)
+        arrow   = "▲" if v["chg"] >= 0 else "▼"
+        chg_col = (255, 180, 180) if v["chg"] >= 0 else (180, 200, 255)
+        chg_str = f"{arrow}{abs(v['chg']):.2f}%"
 
-        # % change
-        arrow  = "▲" if v["chg"] >= 0 else "▼"
-        chg_col= (255,180,180) if v["chg"] >= 0 else (180,200,255)
-        if abs(v["chg"]) >= 0.05:
-            chg_str = f"{arrow}{abs(v['chg']):.2f}%"
+        box_w = rw - PAD * 2
+        box_h = rh - PAD * 2
+
+        if area > 150000:
+            fko, fch = fm, fr
+        elif area > 60000:
+            fko, fch = fr, fmono
         else:
-            chg_str = f"{v['chg']:.2f}%"
+            fko, fch = fmono, fmono
 
-        if area > 40000:
-            bch = draw.textbbox((0,0), chg_str, font=fr)
+        # Check if both name + change fit vertically
+        name_h = fko.size + 4
+        chg_h  = fch.size + 4
+        total_text_h = name_h + chg_h
+
+        if total_text_h < box_h - 20:
+            # Both fit — center them together
+            start_y = cy - total_text_h // 2
+            bk = draw.textbbox((0,0), ko_text, font=fko)
+            tw = bk[2]-bk[0]
+            if tw < box_w - 4:
+                draw.text((cx-tw//2, start_y), ko_text, font=fko, fill=WHITE)
+            bch = draw.textbbox((0,0), chg_str, font=fch)
             tcw = bch[2]-bch[0]
-            draw.text((cx-tcw//2, cy+4), chg_str, font=fr, fill=chg_col)
+            if tcw < box_w - 4:
+                draw.text((cx-tcw//2, start_y+name_h), chg_str, font=fch, fill=chg_col)
+        elif chg_h < box_h - 8:
+            # Only % change fits
+            bch = draw.textbbox((0,0), chg_str, font=fch)
+            tcw = bch[2]-bch[0]
+            if tcw < box_w - 4:
+                draw.text((cx-tcw//2, cy-fch.size//2), chg_str, font=fch, fill=chg_col)
 
     # Legend
     lx, ly = W-420, H-42
