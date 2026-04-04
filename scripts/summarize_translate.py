@@ -128,6 +128,11 @@ def summarize_and_translate():
 
     md = load_market_data()
     market_text = format_market_for_prompt(md)
+    return_mode = md.get("return_mode", "daily")
+    is_weekly = return_mode == "weekly"
+    period_ko = "이번 주" if is_weekly else "오늘"
+    period_en = "weekly (Friday-to-Friday)" if is_weekly else "daily"
+    print(f"📊 Market return mode: {return_mode}", flush=True)
 
     KST   = timezone(timedelta(hours=9))
     today = datetime.now(KST).strftime("%Y년 %m월 %d일")
@@ -136,6 +141,7 @@ def summarize_and_translate():
     print("[Gemini] Call 1: Market sections...", flush=True)
     market_prompt = f"""You are a professional Korean financial broadcast journalist.
 Today is {today} (Korean Standard Time).
+IMPORTANT: The figures below are {period_en} returns. Use "{period_ko}" (not "오늘") when referring to performance.
 
 Using ONLY the market data below, generate the market commentary sections of a Korean audio script.
 Use EXACTLY these section tags on their own lines:
