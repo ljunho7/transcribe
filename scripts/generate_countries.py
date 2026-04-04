@@ -1,7 +1,13 @@
 """
 Geographic grid treemap — tighter grids, smaller font fallbacks.
 """
-import os, json, math
+import os, json, datetime
+
+def is_weekly_mode():
+    is_sunday = datetime.datetime.utcnow().weekday() == 6
+    if is_sunday:
+        print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
+    return is_sunday, math
 from PIL import Image, ImageDraw, ImageFont
 from zoneinfo import ZoneInfo
 from datetime import datetime
