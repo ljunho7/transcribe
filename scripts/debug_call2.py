@@ -154,33 +154,38 @@ Rules: Korean only, no markdown, opening greeting before [시장개요]"""
 
     news_prompt = f"""You are a professional Korean financial broadcast journalist.
 Today is {today} (Korean Standard Time).
-Using ONLY the Korean texts below, write the news section of a Korean audio broadcast script.
-Use EXACTLY this section tag on its own line:
+
+Below are Korean translations from several financial podcasts. The same story may appear in multiple sources.
+
+Your task:
+1. Identify all unique news stories across all sources
+2. Where the same story appears in multiple sources, COMBINE them into one richer story
+3. Write the final broadcast script
 
 KOREAN TEXTS:
 {combined}
 
+Your response MUST start with this exact tag on its own line:
 [뉴스]
-Write 10-15 news stories. For each story:
+
+Then write each story:
 - 소제목: short Korean headline (under 20 chars, no bold, no stars, no numbers)
 - 중요도에 따라 자연스러운 방송 한국어로 작성 (length based on importance)
 
-Sort stories by importance. Merge duplicate topics across sources.
-End with a single closing sentence after the last story.
+Sort stories by importance. End with a single closing sentence.
 
 Rules:
 - Korean only (company/person names in English OK)
 - No markdown, no bold, no numbering
-- NEVER repeat the same headline — each story must be unique
-- Once you have 10-15 distinct stories, STOP
-- Do not pad or loop"""
+- Each story must be unique — never repeat the same topic
+- Once all unique stories are covered, STOP"""
 
     news_script = call_gemini(
         client, news_prompt,
         required_tags=["[뉴스]"],
         min_chars=news_min_chars,
         max_tokens=32768,
-        no_thinking=False
+        no_thinking=True
     )
 
     # ── Save ──────────────────────────────────────────────────────────────
