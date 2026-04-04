@@ -16,7 +16,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 
-VIDEO_FILE = "temp/output.mp4"
+VIDEO_FILE = "temp/final_video.mp4"
 
 
 def upload_to_youtube():
