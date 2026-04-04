@@ -4,7 +4,7 @@ Uses SPDR sector ETFs. Box size = live ETF market cap (millions, sqrt-scaled).
 Color = daily return (Korean convention: red=up, blue=down).
 """
 
-import os, json, requests
+import os, json, math, requests
 import datetime as dt
 from datetime import datetime
 from zoneinfo import ZoneInfo
