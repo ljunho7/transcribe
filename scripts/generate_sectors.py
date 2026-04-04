@@ -4,7 +4,13 @@ Uses SPDR sector ETFs. Box size = live ETF market cap (millions, sqrt-scaled).
 Color = daily return (Korean convention: red=up, blue=down).
 """
 
-import os, json, math
+import os, json, datetime
+
+def is_weekly_mode():
+    is_sunday = datetime.datetime.utcnow().weekday() == 6
+    if is_sunday:
+        print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
+    return is_sunday, math
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
@@ -49,7 +55,7 @@ def chg_color(chg):
 def fetch_sector_data():
     import yfinance as yf
     tickers = [s[0] for s in SECTORS]
-    data = yf.download(tickers, period="5d", auto_adjust=True,
+    data = yf.download(tickers, ("10d" if is_weekly_mode() else "5d"), auto_adjust=True,
                        progress=False, group_by="ticker")
     results = {}
     for etf, ko, en in SECTORS:
