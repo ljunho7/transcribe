@@ -83,22 +83,24 @@ def format_market_for_prompt(md):
     return "\n".join(lines)
 
 
-def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=4096):
+def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=4096, thinking=False, models=None):
     """Try each model until one succeeds with a valid response."""
     last_error = None
-    for model in MODELS:
+    for model in (models or MODELS):
         for attempt in range(1, MAX_RETRIES + 1):
             try:
                 print(f"  [Gemini] {model} attempt {attempt}/{MAX_RETRIES} "
                       f"({len(prompt):,} chars)...", flush=True)
+                cfg = types.GenerateContentConfig(
+                    max_output_tokens=max_tokens,
+                    temperature=0.4,
+                )
+                if not thinking:
+                    cfg.thinking_config = types.ThinkingConfig(thinking_budget=0)
                 response = client.models.generate_content(
                     model=model,
                     contents=prompt,
-                    config=types.GenerateContentConfig(
-                        max_output_tokens=max_tokens,
-                        temperature=0.4,
-                        thinking_config=types.ThinkingConfig(thinking_budget=0),
-                    ),
+                    config=cfg,
                 )
                 text = response.text.strip()
                 missing = [t for t in required_tags if t not in text]
@@ -215,43 +217,47 @@ TRANSCRIPT:
         combined += f"[출처: {s['source']}]\n{s['summary']}\n\n===\n\n"
     print(f"\n  📦 Combined: {len(combined):,} chars from {len(summaries)} sources\n", flush=True)
 
-    # ── Call 2: Final news section from combined summaries ────────────────
+    # ── Call 2: Final news section — uses gemini-2.5-flash for reliable long output ──
     print("[Gemini] Call 2: Final news section...", flush=True)
     news_prompt = f"""You are a professional Korean financial broadcast journalist.
 Today is {today} (Korean Standard Time).
 
-Using ONLY the Korean summaries below, generate the news section of a Korean audio script.
-Use EXACTLY this section tag on its own line:
+Below are Korean translations from several financial podcasts. The same story may appear in multiple sources.
 
-PODCAST SUMMARIES:
+Your task:
+1. Identify all unique news stories across all sources
+2. Where the same story appears in multiple sources, COMBINE them into one richer story
+3. Write the final broadcast script
+
+KOREAN TEXTS:
 {combined}
 
-Output format:
-
+Your response MUST start with this exact tag on its own line:
 [뉴스]
-(15-20 minute section. 10-15 news stories drawn from the summaries. Each story:
-- 소제목: short Korean headline (under 20 chars, no bold/stars/numbers)
-- 2-3 paragraphs of detail in natural broadcast Korean
-Sort by cross-source importance. Merge duplicate topics across sources.
-End with one closing sentence after the last story.)
+
+Then write each story:
+- 소제목: short Korean headline (under 20 chars, no bold, no stars, no numbers)
+- 중요도에 따라 자연스러운 방송 한국어로 작성 (length based on importance)
+
+Sort stories by importance. End with a single closing sentence.
 
 Rules:
 - Korean only (company/person names in English OK)
 - No markdown, no bold, no numbering
-- Natural conversational broadcast Korean
-- NEVER repeat the same headline or story — each story must be unique
-- Once you have covered 10-15 distinct stories, STOP immediately
-- Do not pad or loop — end with a single closing sentence after the last story"""
+- Each story must be unique — never repeat the same topic
+- Once all unique stories are covered, STOP"""
 
-    # min_chars = 60% of combined summary size, capped at 10000
-    news_min_chars = min(10000, int(len(combined) * 0.6))
-    print(f"  🎯 News min_chars set to {news_min_chars:,} (60% of {len(combined):,} combined)", flush=True)
+    # min_chars = 30% of combined size, floor 500, cap 10000
+    news_min_chars = max(500, min(10000, int(len(combined) * 0.5)))
+    print(f"  🎯 News min_chars set to {news_min_chars:,} (50% of {len(combined):,} combined)", flush=True)
 
     news_script = call_gemini(
         client, news_prompt,
         required_tags=["[뉴스]"],
         min_chars=news_min_chars,
-        max_tokens=65536
+        max_tokens=32768,
+        thinking=False,
+        models=["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite-preview"]
     )
 
     # ── Combine and save ──────────────────────────────────────────────────
