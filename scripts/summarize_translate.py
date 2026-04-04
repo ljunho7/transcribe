@@ -96,6 +96,7 @@ def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=16384):
                     config=types.GenerateContentConfig(
                         max_output_tokens=max_tokens,
                         temperature=0.4,
+                        thinking_config=types.ThinkingConfig(thinking_level="none"),
                     ),
                 )
                 text = response.text.strip()
@@ -197,7 +198,10 @@ End with one closing sentence after the last story.)
 Rules:
 - Korean only (company/person names in English OK)
 - No markdown, no bold, no numbering
-- Natural conversational broadcast Korean"""
+- Natural conversational broadcast Korean
+- NEVER repeat the same headline or story — each story must be unique
+- Once you have covered 10-15 distinct stories, STOP immediately
+- Do not pad or loop — end with a single closing sentence after the last story"""
 
     news_script = call_gemini(
         client, news_prompt,
