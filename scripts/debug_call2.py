@@ -17,9 +17,11 @@ MAX_RETRIES = 3
 RETRY_DELAY = 10
 
 
-def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=4096, no_thinking=True):
+def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=4096, no_thinking=True, models=None):
+    if models is None:
+        models = MODELS
     last_error = None
-    for model in MODELS:
+    for model in models:
         for attempt in range(1, MAX_RETRIES + 1):
             try:
                 print(f"  [Gemini] {model} attempt {attempt}/{MAX_RETRIES} "
@@ -185,7 +187,8 @@ Rules:
         required_tags=["[뉴스]"],
         min_chars=news_min_chars,
         max_tokens=32768,
-        no_thinking=True
+        no_thinking=True,
+        models=["gemini-2.5-flash", "gemini-2.5-flash-lite"]   # force full model for news
     )
 
     # ── Save ──────────────────────────────────────────────────────────────
