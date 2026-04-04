@@ -124,6 +124,9 @@ Output format — use EXACTLY these section tags:
 [섹터분석]
 (1-2 minute sector performance walkthrough. Go from best to worst performing sector. Note any notable divergences or themes across sectors.)
 
+[국가별]
+(1-2 minute global country market walkthrough. Cover major DM and EM countries. Highlight standout performers and laggards. Note any regional trends e.g. Asia up, Europe mixed.)
+
 [뉴스]
 (15-20 minute section. 10-15 news stories from the transcripts. Each story:
 - 소제목: short Korean headline (under 20 chars, no bold/stars/numbers)
@@ -159,7 +162,7 @@ Rules:
                     f.write(korean_script)
 
                 # Verify sections exist
-                for tag in ["[시장개요]", "[주요등락]", "[섹터분석]", "[뉴스]"]:
+                for tag in ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]:
                     if tag not in korean_script:
                         print(f"  ⚠️  Missing section tag: {tag}", flush=True)
 
