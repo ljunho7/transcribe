@@ -146,20 +146,28 @@ MARKET DATA:
 Output format:
 
 [시장개요]
-(2-3 minute market overview. Walk through each index, FX rate, crypto, and interest rates using the exact numbers above. Natural broadcast Korean. Note notable moves. End with overall market sentiment.)
+Cover ONLY these key variables in this order:
+1. 주요 지수: S&P 500, NASDAQ, DOW, SOX — price and % change for each
+2. 외환: USD/KRW, EUR/USD, DXY — mention only if move is notable (>0.3%)
+3. 암호화폐: mention only if move is notable (>2%)
+4. 금리: 미국 10년물 국채 금리 only — as a key benchmark
+   - 연방기금금리: mention ONLY if chg_bp is non-zero (i.e. Fed actually changed rates)
+5. One sentence on overall market sentiment
+Keep concise — 1-2 minutes max.
 
 [주요등락]
-(1-2 minutes. S&P 500 top movers — top gainers and top losers with brief commentary. Use exact names and % figures from the data.)
+Top 3 gainers and top 3 losers from S&P 500. Name, ticker, % change, one-line reason if notable.
+1 minute max.
 
 [섹터분석]
-(1-2 minutes. Sector performance walkthrough from best to worst. Note any notable divergences.)
+Best 3 and worst 3 sectors only. Skip middle sectors unless there is a notable divergence.
+1 minute max.
 
 [국가별]
-(1-2 minutes. Follow this structure:
 1. 미국(SPY), 한국(EWY), 중국(MCHI), 일본(EWJ) — each with today's return.
 2. 상위 3개국 — top 3 best performing countries.
 3. 하위 3개국 — bottom 3 worst performing countries.
-Concise and broadcast-style.)
+1 minute max.
 
 Rules:
 - Korean only (tickers/company names in English OK)
