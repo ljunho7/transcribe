@@ -54,7 +54,10 @@ def wrap_text(text, font, draw, max_width):
 
 def make_story_frame(headline, card_idx, total_stories, right_bg):
     """Left story card + right half of background."""
-    frame = right_bg.copy()
+    # Create full 1920x1080 frame, paste right_bg on the right half
+    frame = Image.new("RGB", (W, H), DARK)
+    frame.paste(right_bg, (LEFT_W, 0))
+
     left = Image.new("RGB", (LEFT_W, H), DARK)
     draw = ImageDraw.Draw(left)
 
@@ -160,6 +163,15 @@ def assemble():
         bg_w, bg_h = bg.size
         right_crop = bg.crop((bg_w // 2, 0, bg_w, bg_h))
         right_bg = right_crop.resize((W - LEFT_W, H))
+    else:
+        # Generate a simple dark gradient fallback
+        print("  ⚠️  assets/background.jpg not found — using dark gradient fallback", flush=True)
+        right_bg = Image.new("RGB", (W - LEFT_W, H), DARK)
+        draw_fb = ImageDraw.Draw(right_bg)
+        for y in range(H):
+            t = y / H
+            draw_fb.line([(0,y),(W-LEFT_W,y)],
+                         fill=(int(8+10*t), int(12+15*t), int(22+30*t)))
 
     # Count news stories for progress bar
     total_stories = sum(1 for m in manifest if m["section"] == "[뉴스]")
@@ -188,8 +200,10 @@ def assemble():
             image_path = IMAGES.get(section, "assets/background.jpg")
 
         if not os.path.exists(str(image_path)):
-            print(f"  ⚠️  Image not found: {image_path}, using background", flush=True)
-            image_path = "assets/background.jpg"
+            print(f"  ⚠️  Image not found: {image_path}, using dark fallback", flush=True)
+            fallback = Image.new("RGB", (W, H), DARK)
+            image_path = CLIPS_DIR / f"fallback_{i+1:03d}.jpg"
+            fallback.save(str(image_path))
 
         ok = image_to_clip(image_path, audio, clip_path)
         if ok:
