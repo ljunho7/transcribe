@@ -14,8 +14,8 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
 MODELS = [
-    "gemini-2.5-flash-preview-04-17",
     "gemini-2.5-flash",
+    "gemini-2.0-flash-001",
     "gemini-2.0-flash",
 ]
 MAX_RETRIES = 3
@@ -165,10 +165,11 @@ Rules:
                 with open("temp/korean_script.txt", "w", encoding="utf-8") as f:
                     f.write(korean_script)
 
-                # Verify sections exist
-                for tag in ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]:
-                    if tag not in korean_script:
-                        print(f"  ⚠️  Missing section tag: {tag}", flush=True)
+                # Validate response
+                missing = [tag for tag in ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
+                           if tag not in korean_script]
+                if missing or len(korean_script) < 2000:
+                    raise ValueError(f"Invalid response: {len(korean_script)} chars, missing: {missing}")
 
                 print(f"✅ Script saved ({len(korean_script):,} chars) using {model}.", flush=True)
                 return korean_script
