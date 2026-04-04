@@ -31,12 +31,7 @@
       "chg_pct": 0.16
     }
   },
-  "crypto": {
-    "비트코인": {
-      "price": 66898.0,
-      "chg_pct": 0.01
-    }
-  },
+  "crypto": {},
   "rates": {
     "미국 2년물": {
       "rate": 3.79,
@@ -227,6 +222,236 @@
     "XLU": {
       "ko": "유틸리티",
       "chg_pct": 0.5
+    }
+  },
+  "countries": {
+    "SPY": {
+      "ko": "미국",
+      "en": "USA",
+      "region": "DM",
+      "chg_pct": 0.09
+    },
+    "EWC": {
+      "ko": "캐나다",
+      "en": "Canada",
+      "region": "DM",
+      "chg_pct": 0.25
+    },
+    "EWW": {
+      "ko": "멕시코",
+      "en": "Mexico",
+      "region": "EM",
+      "chg_pct": -0.34
+    },
+    "EWU": {
+      "ko": "영국",
+      "en": "UK",
+      "region": "DM",
+      "chg_pct": -0.26
+    },
+    "EWG": {
+      "ko": "독일",
+      "en": "Germany",
+      "region": "DM",
+      "chg_pct": -0.75
+    },
+    "EWQ": {
+      "ko": "프랑스",
+      "en": "France",
+      "region": "DM",
+      "chg_pct": -0.23
+    },
+    "EWL": {
+      "ko": "스위스",
+      "en": "Switzerland",
+      "region": "DM",
+      "chg_pct": -0.92
+    },
+    "EWN": {
+      "ko": "네덜란드",
+      "en": "Netherlands",
+      "region": "DM",
+      "chg_pct": -0.79
+    },
+    "EWI": {
+      "ko": "이탈리아",
+      "en": "Italy",
+      "region": "DM",
+      "chg_pct": -0.37
+    },
+    "EWP": {
+      "ko": "스페인",
+      "en": "Spain",
+      "region": "DM",
+      "chg_pct": -0.15
+    },
+    "EWD": {
+      "ko": "스웨덴",
+      "en": "Sweden",
+      "region": "DM",
+      "chg_pct": 0.0
+    },
+    "EWK": {
+      "ko": "벨기에",
+      "en": "Belgium",
+      "region": "DM",
+      "chg_pct": 0.45
+    },
+    "EDEN": {
+      "ko": "덴마크",
+      "en": "Denmark",
+      "region": "DM",
+      "chg_pct": 0.08
+    },
+    "EWO": {
+      "ko": "오스트리아",
+      "en": "Austria",
+      "region": "DM",
+      "chg_pct": -0.78
+    },
+    "EWJ": {
+      "ko": "일본",
+      "en": "Japan",
+      "region": "DM",
+      "chg_pct": -1.38
+    },
+    "EWA": {
+      "ko": "호주",
+      "en": "Australia",
+      "region": "DM",
+      "chg_pct": 0.04
+    },
+    "EWS": {
+      "ko": "싱가포르",
+      "en": "Singapore",
+      "region": "DM",
+      "chg_pct": -0.67
+    },
+    "EWH": {
+      "ko": "홍콩",
+      "en": "Hong Kong",
+      "region": "DM",
+      "chg_pct": -0.39
+    },
+    "EWY": {
+      "ko": "한국",
+      "en": "Korea",
+      "region": "EM",
+      "chg_pct": -2.65
+    },
+    "EIS": {
+      "ko": "이스라엘",
+      "en": "Israel",
+      "region": "DM",
+      "chg_pct": -0.56
+    },
+    "MCHI": {
+      "ko": "중국",
+      "en": "China",
+      "region": "EM",
+      "chg_pct": -0.29
+    },
+    "INDA": {
+      "ko": "인도",
+      "en": "India",
+      "region": "EM",
+      "chg_pct": -0.13
+    },
+    "EWT": {
+      "ko": "대만",
+      "en": "Taiwan",
+      "region": "EM",
+      "chg_pct": -1.32
+    },
+    "EWM": {
+      "ko": "말레이시아",
+      "en": "Malaysia",
+      "region": "EM",
+      "chg_pct": -1.08
+    },
+    "THD": {
+      "ko": "태국",
+      "en": "Thailand",
+      "region": "EM",
+      "chg_pct": -0.65
+    },
+    "EPHE": {
+      "ko": "필리핀",
+      "en": "Philippines",
+      "region": "EM",
+      "chg_pct": -0.68
+    },
+    "EIDO": {
+      "ko": "인도네시아",
+      "en": "Indonesia",
+      "region": "EM",
+      "chg_pct": -1.52
+    },
+    "VNM": {
+      "ko": "베트남",
+      "en": "Vietnam",
+      "region": "EM",
+      "chg_pct": 0.34
+    },
+    "EZA": {
+      "ko": "남아공",
+      "en": "S.Africa",
+      "region": "EM",
+      "chg_pct": -1.18
+    },
+    "TUR": {
+      "ko": "터키",
+      "en": "Turkey",
+      "region": "EM",
+      "chg_pct": 0.67
+    },
+    "KSA": {
+      "ko": "사우디",
+      "en": "Saudi Arabia",
+      "region": "EM",
+      "chg_pct": -0.48
+    },
+    "UAE": {
+      "ko": "UAE",
+      "en": "UAE",
+      "region": "EM",
+      "chg_pct": -1.88
+    },
+    "QAT": {
+      "ko": "카타르",
+      "en": "Qatar",
+      "region": "EM",
+      "chg_pct": -0.8
+    },
+    "EPOL": {
+      "ko": "폴란드",
+      "en": "Poland",
+      "region": "EM",
+      "chg_pct": 0.79
+    },
+    "GREK": {
+      "ko": "그리스",
+      "en": "Greece",
+      "region": "EM",
+      "chg_pct": -1.09
+    },
+    "EWZ": {
+      "ko": "브라질",
+      "en": "Brazil",
+      "region": "EM",
+      "chg_pct": -0.05
+    },
+    "ECH": {
+      "ko": "칠레",
+      "en": "Chile",
+      "region": "EM",
+      "chg_pct": -1.36
+    },
+    "EPU": {
+      "ko": "페루",
+      "en": "Peru",
+      "region": "EM",
+      "chg_pct": -1.33
     }
   }
 }
