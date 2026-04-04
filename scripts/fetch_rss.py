@@ -110,13 +110,20 @@ def fetch_latest_episodes():
         sources = json.load(f)
 
     os.makedirs("temp/audio", exist_ok=True)
+
+    # On Sunday UTC (Monday KST), extend max_age to 48hr to cover Saturday podcasts
+    import datetime
+    is_sunday_utc = datetime.datetime.utcnow().weekday() == 6  # 6 = Sunday
+    age_multiplier = 2 if is_sunday_utc else 1
+    if is_sunday_utc:
+        print("📅 Sunday UTC detected — using 48hr podcast age limit", flush=True)
     downloaded = []
     skipped = []
     failed = []
 
     for source in sources:
         name = source["name"]
-        max_age_hours = source.get("max_age_hours", 24)
+        max_age_hours = source.get("max_age_hours", 24) * age_multiplier
         priority = source.get("priority", 5)
 
         print(f"\n[RSS] Fetching: {name}", flush=True)
