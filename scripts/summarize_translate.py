@@ -1,7 +1,8 @@
 """
-Step 3: Generate Korean script in two separate Gemini calls:
-  Call 1: [시장개요] + [주요등락] + [섹터분석] + [국가별] — market data only
-  Call 2: [뉴스] — transcripts only
+Step 3: Generate Korean script in separate Gemini calls:
+  Call 1:       [시장개요] + [주요등락] + [섹터분석] + [국가별] — market data only
+  Pass 1 (N):   Summarize each podcast transcript individually (SUMMARY_RATIO of original)
+  Call 2 (final): [뉴스] — from combined Korean summaries
 """
 
 import os, json, time
@@ -17,6 +18,9 @@ MODELS = [
 ]
 MAX_RETRIES = 3
 RETRY_DELAY = 10
+
+MAX_CHARS_PER_TRANSCRIPT = 8000  # truncate each podcast before summarizing
+SUMMARY_RATIO = 0.5              # summarize each podcast to this fraction of its chars
 
 
 def load_market_data():
@@ -65,24 +69,22 @@ def format_market_for_prompt(md):
     if md.get("countries"):
         lines.append("[ 국가별 ETF 수익률 ]")
         sorted_c = sorted(md["countries"].items(), key=lambda x: -x[1]["chg_pct"])
-        top3    = [(t, v) for t, v in sorted_c[:3]]
-        bottom3 = [(t, v) for t, v in sorted_c[-3:]]
-        key4    = ["SPY", "EWY", "MCHI", "EWJ"]
+        key4 = ["SPY", "EWY", "MCHI", "EWJ"]
         lines.append("  주요 4개국:")
         for t, v in sorted_c:
             if t in key4:
                 arrow = "▲" if v["chg_pct"] >= 0 else "▼"
                 lines.append(f"    {v['ko']}({t}): {arrow}{abs(v['chg_pct']):.2f}%")
         lines.append("  상위 3개국:")
-        for t, v in top3:
+        for t, v in sorted_c[:3]:
             lines.append(f"    {v['ko']}({t}): +{v['chg_pct']:.2f}%")
         lines.append("  하위 3개국:")
-        for t, v in bottom3:
+        for t, v in sorted_c[-3:]:
             lines.append(f"    {v['ko']}({t}): {v['chg_pct']:.2f}%")
     return "\n".join(lines)
 
 
-def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=16384):
+def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=4096):
     """Try each model until one succeeds with a valid response."""
     last_error = None
     for model in MODELS:
@@ -121,14 +123,6 @@ def summarize_and_translate():
 
     md = load_market_data()
     market_text = format_market_for_prompt(md)
-
-    transcript_dir = Path("temp/transcripts")
-    all_transcripts = ""
-    for txt_file in sorted(transcript_dir.glob("*.txt")):
-        with open(txt_file, "r", encoding="utf-8") as f:
-            all_transcripts += f.read() + "\n\n===\n\n"
-    if not all_transcripts.strip():
-        raise ValueError("No transcripts found")
 
     KST   = timezone(timedelta(hours=9))
     today = datetime.now(KST).strftime("%Y년 %m월 %d일")
@@ -172,27 +166,77 @@ Rules:
     market_script = call_gemini(
         client, market_prompt,
         required_tags=["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]"],
-        min_chars=1000
+        min_chars=1000,
+        max_tokens=8192
     )
 
-    # ── Call 2: News section ──────────────────────────────────────────────
-    print("[Gemini] Call 2: News section...", flush=True)
+    # ── Pass 1: Summarize each podcast individually ───────────────────────
+    transcript_dir = Path("temp/transcripts")
+    transcript_files = sorted(transcript_dir.glob("*.txt"))
+    if not transcript_files:
+        raise ValueError("No transcripts found")
+
+    print(f"\n[Gemini] Pass 1: Summarizing {len(transcript_files)} podcasts "
+          f"(SUMMARY_RATIO={SUMMARY_RATIO})...", flush=True)
+
+    summaries = []
+    for txt_file in transcript_files:
+        with open(txt_file, "r", encoding="utf-8") as f:
+            text = f.read()
+        original_len = len(text)
+        if len(text) > MAX_CHARS_PER_TRANSCRIPT:
+            text = text[:MAX_CHARS_PER_TRANSCRIPT]
+        target_chars = int(len(text) * SUMMARY_RATIO)
+        print(f"\n  📄 {txt_file.name}: {original_len:,} → {len(text):,} chars "
+              f"(target summary: {target_chars:,} chars)", flush=True)
+
+        summary_prompt = f"""Summarize the following English financial podcast transcript into Korean.
+Target length: approximately {target_chars} Korean characters.
+Focus on: key financial events, market moves, economic data, company news, geopolitical developments.
+Write in natural Korean prose — no bullet points, no headers, no tags.
+Do NOT add any intro or closing sentence — just the summary content.
+
+TRANSCRIPT:
+{text}"""
+
+        try:
+            summary = call_gemini(
+                client, summary_prompt,
+                required_tags=[],
+                min_chars=100,
+                max_tokens=4096
+            )
+            summaries.append({"source": txt_file.stem, "summary": summary})
+            print(f"  ✅ Summary: {len(summary):,} chars", flush=True)
+        except Exception as e:
+            print(f"  ⚠️  Summary failed for {txt_file.name}: {e} — skipping", flush=True)
+
+    if not summaries:
+        raise ValueError("No summaries produced")
+
+    combined = ""
+    for s in summaries:
+        combined += f"[출처: {s['source']}]\n{s['summary']}\n\n===\n\n"
+    print(f"\n  📦 Combined: {len(combined):,} chars from {len(summaries)} sources\n", flush=True)
+
+    # ── Call 2: Final news section from combined summaries ────────────────
+    print("[Gemini] Call 2: Final news section...", flush=True)
     news_prompt = f"""You are a professional Korean financial broadcast journalist.
 Today is {today} (Korean Standard Time).
 
-Using ONLY the podcast transcripts below, generate the news section of a Korean audio script.
+Using ONLY the Korean summaries below, generate the news section of a Korean audio script.
 Use EXACTLY this section tag on its own line:
 
-PODCAST TRANSCRIPTS:
-{all_transcripts}
+PODCAST SUMMARIES:
+{combined}
 
 Output format:
 
 [뉴스]
-(15-20 minute section. 10-15 news stories from the transcripts. Each story:
+(15-20 minute section. 10-15 news stories drawn from the summaries. Each story:
 - 소제목: short Korean headline (under 20 chars, no bold/stars/numbers)
 - 2-3 paragraphs of detail in natural broadcast Korean
-Sort by cross-source importance. Combine duplicate stories.
+Sort by cross-source importance. Merge duplicate topics across sources.
 End with one closing sentence after the last story.)
 
 Rules:
@@ -217,7 +261,7 @@ Rules:
     with open("temp/korean_script.txt", "w", encoding="utf-8") as f:
         f.write(korean_script)
 
-    print(f"✅ Script saved ({len(korean_script):,} chars total)", flush=True)
+    print(f"\n✅ Script saved ({len(korean_script):,} chars total)", flush=True)
     print("\n" + "="*60, flush=True)
     print(korean_script, flush=True)
     print("="*60, flush=True)
