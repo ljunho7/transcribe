@@ -4,16 +4,18 @@ Uses SPDR sector ETFs. Box size = live ETF market cap (millions, sqrt-scaled).
 Color = daily return (Korean convention: red=up, blue=down).
 """
 
-import os, json, datetime
-import requests
-def is_weekly_mode():
-    is_sunday = datetime.datetime.utcnow().weekday() == 6
-    if is_sunday:
-        print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
-    return is_sunday
+import os, json, requests
+import datetime as dt
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
+
+def is_weekly_mode():
+    is_sunday = dt.datetime.utcnow().weekday() == 6
+    if is_sunday:
+        print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
+    return is_sunday
+
 
 OUTPUT  = "assets/sectors.jpg"
 FONTS   = "/usr/share/fonts/opentype/noto"
