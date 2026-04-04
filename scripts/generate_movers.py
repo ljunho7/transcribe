@@ -3,16 +3,18 @@ Generates assets/movers.jpg — S&P 500 top 10 gainers and losers for the day.
 Used as a second daily image (separate from background.jpg).
 """
 
-import os, json, datetime
-import requests
-def is_weekly_mode():
-    is_sunday = datetime.datetime.utcnow().weekday() == 6
-    if is_sunday:
-        print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
-    return is_sunday
+import os, json, requests
+import datetime as dt
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
+
+def is_weekly_mode():
+    is_sunday = dt.datetime.utcnow().weekday() == 6
+    if is_sunday:
+        print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
+    return is_sunday
+
 
 OUTPUT  = "assets/movers.jpg"
 FONTS   = "/usr/share/fonts/opentype/noto"
