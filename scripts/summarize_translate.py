@@ -201,9 +201,17 @@ Rules:
         print(f"\n  📄 {txt_file.name}: {original_len:,} → {len(text):,} chars", flush=True)
 
         summary_prompt = f"""Translate the following English financial podcast transcript into Korean.
+
+IMPORTANT — Skip advertisements completely. Do not translate any of the following:
+- Sponsor messages or product promotions (e.g. "brought to you by...", "this episode is sponsored by...")
+- Insurance, software, financial product advertisements
+- Calls to action like "visit our website", "download our app", "use code..."
+- Any content that is clearly not financial/economic news
+
+Translate ONLY the actual news and analysis content.
 Write in natural Korean prose — no bullet points, no headers, no tags.
 Do NOT add any intro or closing sentence — just the translated content.
-Focus on preserving all key details: financial events, market moves, economic data, company news, geopolitical developments.
+Focus on: financial events, market moves, economic data, company news, geopolitical developments.
 
 TRANSCRIPT:
 {text}"""
