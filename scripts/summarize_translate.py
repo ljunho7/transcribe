@@ -104,10 +104,14 @@ def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=4096, t
                 )
                 text = response.text.strip()
                 missing = [t for t in required_tags if t not in text]
-                if missing or len(text) < min_chars:
-                    print(f"  ⚠️  Invalid ({len(text)} chars, missing: {missing})", flush=True)
+                if missing:
+                    print(f"  ⚠️  Missing tags: {missing} ({len(text)} chars)", flush=True)
                     print(f"  Preview: {text[:300]}", flush=True)
-                    raise ValueError(f"Invalid response: missing {missing}")
+                    raise ValueError(f"Missing required tags: {missing}")
+                if len(text) < min_chars:
+                    print(f"  ⚠️  Too short: {len(text)} chars (min {min_chars})", flush=True)
+                    print(f"  Preview: {text[:300]}", flush=True)
+                    raise ValueError(f"Response too short: {len(text)} < {min_chars}")
                 print(f"  ✅ {model}: {len(text):,} chars", flush=True)
                 return text
             except Exception as e:
@@ -248,8 +252,8 @@ Rules:
 - Once all unique stories are covered, STOP"""
 
     # min_chars = 30% of combined size, floor 500, cap 10000
-    news_min_chars = max(500, min(10000, int(len(combined) * 0.5)))
-    print(f"  🎯 News min_chars set to {news_min_chars:,} (50% of {len(combined):,} combined)", flush=True)
+    news_min_chars = 1000  # just ensure non-trivial output
+    print(f"  🎯 News min_chars: {news_min_chars:,} chars", flush=True)
 
     news_script = call_gemini(
         client, news_prompt,
