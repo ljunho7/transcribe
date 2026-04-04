@@ -4,10 +4,10 @@ All USD-denominated, US-listed. Box size = ETF market cap (price * shares outsta
 Color = Korean convention (red=up, blue=down).
 """
 
-import math, random, yfinance as yf
+import json, math, random, yfinance as yf
 from PIL import Image, ImageDraw, ImageFont
 
-OUTPUT  = "/mnt/user-data/outputs/country_map_test.jpg"
+OUTPUT  = "assets/countries.jpg"
 FONTS   = "/usr/share/fonts/opentype/noto"
 KO_BOLD = f"{FONTS}/NotoSansCJK-Bold.ttc"
 KO_REG  = f"{FONTS}/NotoSansCJK-Regular.ttc"
@@ -270,6 +270,20 @@ def generate_map(countries):
 
     img.save(OUTPUT, "JPEG", quality=95)
     print(f"✅ Saved → {OUTPUT}", flush=True)
+
+    # Append to market_data.json
+    try:
+        with open("assets/market_data.json") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+    data["countries"] = {
+        etf: {"ko": v["ko"], "en": v["en"], "region": v["region"], "chg_pct": round(v["chg"], 2)}
+        for etf, v in countries.items()
+    }
+    with open("assets/market_data.json", "w") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    print("✅ Countries saved → assets/market_data.json", flush=True)
 
 
 if __name__ == "__main__":
