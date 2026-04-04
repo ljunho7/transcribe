@@ -57,7 +57,8 @@ def chg_color(chg):
 def fetch_sector_data():
     import yfinance as yf
     tickers = [s[0] for s in SECTORS]
-    data = yf.download(tickers, ("10d" if is_weekly_mode() else "5d"), auto_adjust=True,
+    period = "10d" if is_weekly_mode() else "5d"
+    data = yf.download(tickers, period=period, auto_adjust=True,
                        progress=False, group_by="ticker")
     results = {}
     for etf, ko, en in SECTORS:
@@ -78,6 +79,8 @@ def fetch_sector_data():
             print(f"  ✅ {etf} {ko}: {chg:+.2f}%  mcap=${mcap/1e6:,.0f}M", flush=True)
         except Exception as e:
             print(f"  ⚠️  {etf}: {e}", flush=True)
+    if not results:
+        raise RuntimeError("No market data available — market may be closed (weekend/holiday)")
     return results
 
 
