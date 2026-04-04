@@ -3,13 +3,14 @@ Step 4: Split Korean script by section and generate one MP3 per section/story.
 Output: temp/audio/01_시장개요.mp3, 02_주요등락.mp3, ..., 05_story_001.mp3, etc.
 """
 
-import os, re, time
+import os, re, time, subprocess
 from pathlib import Path
 from gtts import gTTS
 
 SCRIPT_FILE = "temp/korean_script.txt"
 AUDIO_DIR   = Path("temp/audio")
 TTS_LANG    = "ko"
+SPEED       = 1.5   # playback speed multiplier — adjust here
 
 SECTION_ORDER = ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
 SECTION_NAMES = {
@@ -88,7 +89,7 @@ def parse_news_stories(news_text):
 
 
 def tts_to_file(text, path, retries=3):
-    """Generate TTS audio with retry."""
+    """Generate TTS audio with retry, then apply speed adjustment."""
     text = text.strip()
     if not text:
         print(f"  ⚠️  Empty text for {path.name}, skipping", flush=True)
@@ -97,8 +98,19 @@ def tts_to_file(text, path, retries=3):
         try:
             tts = gTTS(text=text, lang=TTS_LANG, slow=False)
             tts.save(str(path))
+            # Speed up using ffmpeg atempo filter
+            if SPEED != 1.0:
+                tmp = path.with_suffix(".tmp.mp3")
+                path.rename(tmp)
+                subprocess.run([
+                    "ffmpeg", "-y", "-i", str(tmp),
+                    "-filter:a", f"atempo={SPEED}",
+                    "-q:a", "2",
+                    str(path)
+                ], capture_output=True, check=True)
+                tmp.unlink()
             size = path.stat().st_size
-            print(f"  ✅ {path.name}  ({len(text):,} chars, {size:,} bytes)", flush=True)
+            print(f"  ✅ {path.name}  ({len(text):,} chars, {size:,} bytes, {SPEED}x)", flush=True)
             return True
         except Exception as e:
             print(f"  ⚠️  TTS attempt {attempt} failed: {e}", flush=True)
