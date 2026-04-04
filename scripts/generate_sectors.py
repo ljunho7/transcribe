@@ -5,12 +5,12 @@ Color = daily return (Korean convention: red=up, blue=down).
 """
 
 import os, json, datetime
-
+import requests
 def is_weekly_mode():
     is_sunday = datetime.datetime.utcnow().weekday() == 6
     if is_sunday:
         print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
-    return is_sunday, math
+    return is_sunday
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
