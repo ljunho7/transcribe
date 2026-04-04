@@ -19,7 +19,7 @@ from groq import Groq
 MAX_SIZE_MB  = 24
 MAX_RETRIES  = 3
 DEFAULT_WAIT = 300
-MAX_WAIT     = 600   # If Groq asks us to wait more than 10 min, skip to local fallback
+MAX_WAIT     = 100   # If Groq asks us to wait more than 100s, skip to local fallback
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
