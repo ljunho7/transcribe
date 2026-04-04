@@ -109,9 +109,10 @@ def fit_label(draw, cx, cy, bw, bh, ko, chg, fonts):
             return
 
 def draw_region(draw, fonts, label, layout, rx, ry, rw, rh, lbl_col):
-    LBAR = 20
+    LBAR = 40
+    flabel = fonts[2][0]  # KO_BOLD 18px
     draw.rectangle([(rx,ry),(rx+rw,ry+LBAR)], fill=(12,18,34))
-    draw.text((rx+5, ry+3), label, font=fonts[-1][1], fill=lbl_col)
+    draw.text((rx+10, ry+8), label, font=flabel, fill=lbl_col)
 
     tx, ty = rx, ry+LBAR
     tw, th = rw, rh-LBAR
