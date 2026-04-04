@@ -149,35 +149,38 @@ Rules: Korean only, no markdown, opening greeting before [시장개요]"""
     print(f"  📦 Combined: {len(combined):,} chars\n", flush=True)
 
     # ── Call 2: Final news section ────────────────────────────────────────
-    # min = 30% of combined, floor 500, cap 10000
     news_min_chars = max(500, min(10000, int(len(combined) * 0.3)))
     print(f"[Debug] Call 2: Final news (min {news_min_chars:,} chars)...", flush=True)
+
     news_prompt = f"""You are a professional Korean financial broadcast journalist.
 Today is {today} (Korean Standard Time).
-Using ONLY the Korean texts below, generate the news section.
+Using ONLY the Korean texts below, write the news section of a Korean audio broadcast script.
 Use EXACTLY this section tag on its own line:
 
 KOREAN TEXTS:
 {combined}
 
 [뉴스]
-(10-15 news stories. Each story:
-- 소제목: short Korean headline under 20 chars, no bold/stars/numbers
-- 2-3 paragraphs of detail in natural broadcast Korean
-Sort by importance. Merge duplicate topics across sources.
-End with one closing sentence after the last story.)
+Write 10-15 news stories. For each story:
+- 소제목: short Korean headline (under 20 chars, no bold, no stars, no numbers)
+- 중요도에 따라 자연스러운 방송 한국어로 작성 (length based on importance)
 
-Rules: Korean only, no markdown, no numbering
-NEVER repeat the same headline — each story must be unique
-Once you have 10-15 distinct stories, STOP immediately
-Do not pad or loop"""
+Sort stories by importance. Merge duplicate topics across sources.
+End with a single closing sentence after the last story.
+
+Rules:
+- Korean only (company/person names in English OK)
+- No markdown, no bold, no numbering
+- NEVER repeat the same headline — each story must be unique
+- Once you have 10-15 distinct stories, STOP
+- Do not pad or loop"""
 
     news_script = call_gemini(
         client, news_prompt,
         required_tags=["[뉴스]"],
         min_chars=news_min_chars,
         max_tokens=32768,
-        no_thinking=False   # no thinking_config — all tokens for output
+        no_thinking=False
     )
 
     # ── Save ──────────────────────────────────────────────────────────────
