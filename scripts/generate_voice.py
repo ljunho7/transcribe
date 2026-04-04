@@ -1,161 +1,228 @@
 """
-Step 4: Split Korean script by section and generate one MP3 per section/story.
-Output: temp/audio/01_시장개요.mp3, 02_주요등락.mp3, ..., 05_story_001.mp3, etc.
+Step 3: Generate Korean script in two separate Gemini calls:
+  Call 1: [시장개요] + [주요등락] + [섹터분석] + [국가별] — market data only
+  Call 2: [뉴스] — transcripts only
 """
 
-import os, re, time
+import os, json, time
+from google import genai
+from google.genai import types
 from pathlib import Path
-from gtts import gTTS
+from datetime import datetime, timezone, timedelta
 
-SCRIPT_FILE = "temp/korean_script.txt"
-AUDIO_DIR   = Path("temp/audio")
-TTS_LANG    = "ko"
-
-SECTION_ORDER = ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
-SECTION_NAMES = {
-    "[시장개요]": "시장개요",
-    "[주요등락]": "주요등락",
-    "[섹터분석]": "섹터분석",
-    "[국가별]":   "국가별",
-    "[뉴스]":     "뉴스",
-}
+MODELS = [
+    "gemini-3.1-flash-lite-preview",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+]
+MAX_RETRIES = 3
+RETRY_DELAY = 10
 
 
-def parse_sections(script):
-    """Split script into {tag: text} dict in order."""
-    sections = {}
-    current_tag = None
-    current_lines = []
-
-    for line in script.split("\n"):
-        stripped = line.strip()
-        if stripped in SECTION_ORDER:
-            if current_tag and current_lines:
-                sections[current_tag] = "\n".join(current_lines).strip()
-            current_tag = stripped
-            current_lines = []
-        else:
-            if current_tag:
-                current_lines.append(line)
-
-    if current_tag and current_lines:
-        sections[current_tag] = "\n".join(current_lines).strip()
-
-    return sections
+def load_market_data():
+    try:
+        with open("assets/market_data.json") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"  ⚠️  No market_data.json: {e}", flush=True)
+        return {}
 
 
-def parse_news_stories(news_text):
-    """Split [뉴스] section into individual stories."""
-    stories = []
-    current_headline = None
-    current_body = []
-
-    for line in news_text.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-
-        is_headline = (
-            5 < len(line) < 35
-            and not line.endswith("다.")
-            and not line.endswith("다")
-            and not line.endswith(".")
-        )
-
-        if is_headline and current_headline is None:
-            # First headline — treat preceding text as intro
-            stories.append({"headline": "뉴스 브리핑", "text": line})
-            current_headline = line
-            current_body = []
-        elif is_headline:
-            if current_body:
-                stories.append({
-                    "headline": current_headline,
-                    "text": "\n".join(current_body)
-                })
-            current_headline = line
-            current_body = []
-        else:
-            current_body.append(line)
-
-    if current_headline and current_body:
-        stories.append({
-            "headline": current_headline,
-            "text": "\n".join(current_body)
-        })
-
-    return stories
-
-
-def tts_to_file(text, path, retries=3):
-    """Generate TTS audio with retry."""
-    text = text.strip()
-    if not text:
-        print(f"  ⚠️  Empty text for {path.name}, skipping", flush=True)
-        return False
-    for attempt in range(1, retries+1):
-        try:
-            tts = gTTS(text=text, lang=TTS_LANG, slow=False)
-            tts.save(str(path))
-            size = path.stat().st_size
-            print(f"  ✅ {path.name}  ({len(text):,} chars, {size:,} bytes)", flush=True)
-            return True
-        except Exception as e:
-            print(f"  ⚠️  TTS attempt {attempt} failed: {e}", flush=True)
-            if attempt < retries:
-                time.sleep(5)
-    return False
+def format_market_for_prompt(md):
+    lines = []
+    if md.get("equity"):
+        lines.append("[ 주요 지수 ]")
+        for name, v in md["equity"].items():
+            arrow = "▲" if v["chg_pct"] >= 0 else "▼"
+            lines.append(f"  {name}: {v['price']:,.2f}  {arrow}{abs(v['chg_pct']):.2f}%")
+    if md.get("fx"):
+        lines.append("[ 외환 ]")
+        for name, v in md["fx"].items():
+            arrow = "▲" if v["chg_pct"] >= 0 else "▼"
+            lines.append(f"  {name}: {v['price']}  {arrow}{abs(v['chg_pct']):.2f}%")
+    if md.get("crypto"):
+        lines.append("[ 암호화폐 ]")
+        for name, v in md["crypto"].items():
+            arrow = "▲" if v["chg_pct"] >= 0 else "▼"
+            lines.append(f"  {name}: ${v['price']:,.0f}  {arrow}{abs(v['chg_pct']):.2f}%")
+    if md.get("rates"):
+        lines.append("[ 금리 ]")
+        for name, v in md["rates"].items():
+            lines.append(f"  {name}: {v['rate']:.2f}%  ({v['chg_bp']:+.1f}bp)")
+    if md.get("gainers"):
+        lines.append("[ S&P 500 상위 상승 종목 ]")
+        for g in md["gainers"][:10]:
+            lines.append(f"  {g['symbol']} ({g['name']}): +{g['chg_pct']:.2f}%  ${g['price']:.2f}")
+    if md.get("losers"):
+        lines.append("[ S&P 500 상위 하락 종목 ]")
+        for l in md["losers"][:10]:
+            lines.append(f"  {l['symbol']} ({l['name']}): {l['chg_pct']:.2f}%  ${l['price']:.2f}")
+    if md.get("sectors"):
+        lines.append("[ GICS 섹터별 수익률 ]")
+        for etf, v in sorted(md["sectors"].items(), key=lambda x: -x[1]["chg_pct"]):
+            arrow = "▲" if v["chg_pct"] >= 0 else "▼"
+            lines.append(f"  {v['ko']}: {arrow}{abs(v['chg_pct']):.2f}%")
+    if md.get("countries"):
+        lines.append("[ 국가별 ETF 수익률 ]")
+        sorted_c = sorted(md["countries"].items(), key=lambda x: -x[1]["chg_pct"])
+        top3    = [(t, v) for t, v in sorted_c[:3]]
+        bottom3 = [(t, v) for t, v in sorted_c[-3:]]
+        key4    = ["SPY", "EWY", "MCHI", "EWJ"]
+        lines.append("  주요 4개국:")
+        for t, v in sorted_c:
+            if t in key4:
+                arrow = "▲" if v["chg_pct"] >= 0 else "▼"
+                lines.append(f"    {v['ko']}({t}): {arrow}{abs(v['chg_pct']):.2f}%")
+        lines.append("  상위 3개국:")
+        for t, v in top3:
+            lines.append(f"    {v['ko']}({t}): +{v['chg_pct']:.2f}%")
+        lines.append("  하위 3개국:")
+        for t, v in bottom3:
+            lines.append(f"    {v['ko']}({t}): {v['chg_pct']:.2f}%")
+    return "\n".join(lines)
 
 
-def generate_voice():
-    os.makedirs(AUDIO_DIR, exist_ok=True)
+def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=16384):
+    """Try each model until one succeeds with a valid response."""
+    last_error = None
+    for model in MODELS:
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                print(f"  [Gemini] {model} attempt {attempt}/{MAX_RETRIES} "
+                      f"({len(prompt):,} chars)...", flush=True)
+                response = client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        max_output_tokens=max_tokens,
+                        temperature=0.4,
+                        thinking_config=types.ThinkingConfig(thinking_level="none"),
+                    ),
+                )
+                text = response.text.strip()
+                missing = [t for t in required_tags if t not in text]
+                if missing or len(text) < min_chars:
+                    print(f"  ⚠️  Invalid ({len(text)} chars, missing: {missing})", flush=True)
+                    print(f"  Preview: {text[:300]}", flush=True)
+                    raise ValueError(f"Invalid response: missing {missing}")
+                print(f"  ✅ {model}: {len(text):,} chars", flush=True)
+                return text
+            except Exception as e:
+                last_error = e
+                print(f"  Failed: {e}", flush=True)
+                if attempt < MAX_RETRIES:
+                    time.sleep(RETRY_DELAY)
+        print(f"  All retries failed for {model}, trying next...", flush=True)
+    raise RuntimeError(f"All models failed. Last: {last_error}")
 
-    with open(SCRIPT_FILE, "r", encoding="utf-8") as f:
-        script = f.read()
 
-    sections = parse_sections(script)
-    print(f"📝 Sections found: {list(sections.keys())}", flush=True)
+def summarize_and_translate():
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
-    manifest = []  # ordered list of (audio_path, section_tag, headline)
+    md = load_market_data()
+    market_text = format_market_for_prompt(md)
 
-    for i, tag in enumerate(SECTION_ORDER):
-        text = sections.get(tag, "")
-        if not text:
-            print(f"  ⚠️  Missing section: {tag}", flush=True)
-            continue
+    transcript_dir = Path("temp/transcripts")
+    all_transcripts = ""
+    for txt_file in sorted(transcript_dir.glob("*.txt")):
+        with open(txt_file, "r", encoding="utf-8") as f:
+            all_transcripts += f.read() + "\n\n===\n\n"
+    if not all_transcripts.strip():
+        raise ValueError("No transcripts found")
 
-        if tag == "[뉴스]":
-            stories = parse_news_stories(text)
-            print(f"\n📰 [뉴스]: {len(stories)} stories", flush=True)
-            for j, story in enumerate(stories):
-                fname = AUDIO_DIR / f"05_story_{j+1:03d}.mp3"
-                full_text = f"{story['headline']}\n{story['text']}"
-                ok = tts_to_file(full_text, fname)
-                if ok:
-                    manifest.append({
-                        "audio":    str(fname),
-                        "section":  "[뉴스]",
-                        "headline": story["headline"],
-                    })
-        else:
-            fname = AUDIO_DIR / f"{i+1:02d}_{SECTION_NAMES[tag]}.mp3"
-            print(f"\n🎙️  {tag}", flush=True)
-            ok = tts_to_file(text, fname)
-            if ok:
-                manifest.append({
-                    "audio":   str(fname),
-                    "section": tag,
-                    "headline": "",
-                })
+    KST   = timezone(timedelta(hours=9))
+    today = datetime.now(KST).strftime("%Y년 %m월 %d일")
 
-    # Save manifest for assemble_video.py
-    import json
-    manifest_path = AUDIO_DIR / "manifest.json"
-    with open(manifest_path, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
+    # ── Call 1: Market sections ───────────────────────────────────────────
+    print("[Gemini] Call 1: Market sections...", flush=True)
+    market_prompt = f"""You are a professional Korean financial broadcast journalist.
+Today is {today} (Korean Standard Time).
 
-    print(f"\n✅ Generated {len(manifest)} audio files → {AUDIO_DIR}", flush=True)
+Using ONLY the market data below, generate the market commentary sections of a Korean audio script.
+Use EXACTLY these section tags on their own lines:
+
+MARKET DATA:
+{market_text}
+
+Output format:
+
+[시장개요]
+(2-3 minute market overview. Walk through each index, FX rate, crypto, and interest rates using the exact numbers above. Natural broadcast Korean. Note notable moves. End with overall market sentiment.)
+
+[주요등락]
+(1-2 minutes. S&P 500 top movers — top gainers and top losers with brief commentary. Use exact names and % figures from the data.)
+
+[섹터분석]
+(1-2 minutes. Sector performance walkthrough from best to worst. Note any notable divergences.)
+
+[국가별]
+(1-2 minutes. Follow this structure:
+1. 미국(SPY), 한국(EWY), 중국(MCHI), 일본(EWJ) — each with today's return.
+2. 상위 3개국 — top 3 best performing countries.
+3. 하위 3개국 — bottom 3 worst performing countries.
+Concise and broadcast-style.)
+
+Rules:
+- Korean only (tickers/company names in English OK)
+- No markdown, no bold, no numbering
+- Natural conversational broadcast Korean
+- Use exact numbers from the data
+- Opening one-sentence greeting before [시장개요]"""
+
+    market_script = call_gemini(
+        client, market_prompt,
+        required_tags=["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]"],
+        min_chars=1000
+    )
+
+    # ── Call 2: News section ──────────────────────────────────────────────
+    print("[Gemini] Call 2: News section...", flush=True)
+    news_prompt = f"""You are a professional Korean financial broadcast journalist.
+Today is {today} (Korean Standard Time).
+
+Using ONLY the podcast transcripts below, generate the news section of a Korean audio script.
+Use EXACTLY this section tag on its own line:
+
+PODCAST TRANSCRIPTS:
+{all_transcripts}
+
+Output format:
+
+[뉴스]
+(15-20 minute section. 10-15 news stories from the transcripts. Each story:
+- 소제목: short Korean headline (under 20 chars, no bold/stars/numbers)
+- 2-3 paragraphs of detail in natural broadcast Korean
+Sort by cross-source importance. Combine duplicate stories.
+End with one closing sentence after the last story.)
+
+Rules:
+- Korean only (company/person names in English OK)
+- No markdown, no bold, no numbering
+- Natural conversational broadcast Korean
+- NEVER repeat the same headline or story — each story must be unique
+- Once you have covered 10-15 distinct stories, STOP immediately
+- Do not pad or loop — end with a single closing sentence after the last story"""
+
+    news_script = call_gemini(
+        client, news_prompt,
+        required_tags=["[뉴스]"],
+        min_chars=10000,
+        max_tokens=65536
+    )
+
+    # ── Combine and save ──────────────────────────────────────────────────
+    korean_script = market_script + "\n\n" + news_script
+
+    os.makedirs("temp", exist_ok=True)
+    with open("temp/korean_script.txt", "w", encoding="utf-8") as f:
+        f.write(korean_script)
+
+    print(f"✅ Script saved ({len(korean_script):,} chars total)", flush=True)
+    print("\n" + "="*60, flush=True)
+    print(korean_script, flush=True)
+    print("="*60, flush=True)
+    return korean_script
 
 
 if __name__ == "__main__":
-    generate_voice()
+    summarize_and_translate()
