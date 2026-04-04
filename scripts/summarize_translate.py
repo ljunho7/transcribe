@@ -96,7 +96,7 @@ def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=16384):
                     config=types.GenerateContentConfig(
                         max_output_tokens=max_tokens,
                         temperature=0.4,
-                        thinking_config=types.ThinkingConfig(thinking_level="none"),
+                        thinking_config=types.ThinkingConfig(thinking_budget=0),
                     ),
                 )
                 text = response.text.strip()
