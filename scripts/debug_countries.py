@@ -1,12 +1,11 @@
 """
-Debug: test ALL single-country ETFs across iShares, Global X, Franklin, VanEck, WisdomTree.
-Filter by market cap > $100M. Pick best ETF per country.
+Debug: test all single-country ETFs, use t.info["totalAssets"] for AUM.
+Filter by AUM > $100M.
 """
 import yfinance as yf
 
-# (ticker, country_korean, country_english, ISO3, provider, region)
 ALL_ETFS = [
-    # ── Americas ──────────────────────────────────────────────────────────
+    # Americas
     ("SPY",  "미국",       "USA",          "USA", "SPDR",     "DM"),
     ("EWC",  "캐나다",     "Canada",       "CAN", "iShares",  "DM"),
     ("EWW",  "멕시코",     "Mexico",       "MEX", "iShares",  "EM"),
@@ -15,7 +14,7 @@ ALL_ETFS = [
     ("ECH",  "칠레",       "Chile",        "CHL", "iShares",  "EM"),
     ("EPU",  "페루",       "Peru",         "PER", "iShares",  "EM"),
     ("GXG",  "콜롬비아",   "Colombia",     "COL", "GlobalX",  "EM"),
-    # ── Europe DM ─────────────────────────────────────────────────────────
+    # Europe DM
     ("EWU",  "영국",       "UK",           "GBR", "iShares",  "DM"),
     ("EWG",  "독일",       "Germany",      "DEU", "iShares",  "DM"),
     ("EWQ",  "프랑스",     "France",       "FRA", "iShares",  "DM"),
@@ -32,25 +31,24 @@ ALL_ETFS = [
     ("EPOL", "폴란드",     "Poland",       "POL", "iShares",  "EM"),
     ("GREK", "그리스",     "Greece",       "GRC", "GlobalX",  "EM"),
     ("TUR",  "터키",       "Turkey",       "TUR", "iShares",  "EM"),
-    # ── Middle East ───────────────────────────────────────────────────────
+    # Middle East
     ("EIS",  "이스라엘",   "Israel",       "ISR", "iShares",  "DM"),
     ("KSA",  "사우디",     "Saudi Arabia", "SAU", "iShares",  "EM"),
     ("UAE",  "UAE",        "UAE",          "ARE", "iShares",  "EM"),
     ("QAT",  "카타르",     "Qatar",        "QAT", "iShares",  "EM"),
     ("KWT",  "쿠웨이트",   "Kuwait",       "KWT", "iShares",  "EM"),
-    # ── Africa ────────────────────────────────────────────────────────────
+    # Africa
     ("EZA",  "남아공",     "S.Africa",     "ZAF", "iShares",  "EM"),
     ("EGPT", "이집트",     "Egypt",        "EGY", "VanEck",   "EM"),
-    ("NGE",  "나이지리아", "Nigeria",      "NGA", "GlobalX",  "FM"),
-    # ── Asia Pacific DM ───────────────────────────────────────────────────
+    # Asia Pacific DM
     ("EWJ",  "일본",       "Japan",        "JPN", "iShares",  "DM"),
     ("EWA",  "호주",       "Australia",    "AUS", "iShares",  "DM"),
     ("EWS",  "싱가포르",   "Singapore",    "SGP", "iShares",  "DM"),
     ("EWH",  "홍콩",       "Hong Kong",    "HKG", "iShares",  "DM"),
     ("ENZL", "뉴질랜드",   "New Zealand",  "NZL", "iShares",  "DM"),
-    # ── Asia EM ───────────────────────────────────────────────────────────
+    # Asia EM
     ("MCHI", "중국",       "China",        "CHN", "iShares",  "EM"),
-    ("FXI",  "중국(대형)", "China LargeCap","CHN","iShares",  "EM"),
+    ("FXI",  "중국(대형)", "China Large",  "CHN", "iShares",  "EM"),
     ("INDA", "인도",       "India",        "IND", "iShares",  "EM"),
     ("EWT",  "대만",       "Taiwan",       "TWN", "iShares",  "EM"),
     ("EWY",  "한국",       "S.Korea",      "KOR", "iShares",  "EM"),
@@ -59,9 +57,7 @@ ALL_ETFS = [
     ("EPHE", "필리핀",     "Philippines",  "PHL", "iShares",  "EM"),
     ("EIDO", "인도네시아", "Indonesia",    "IDN", "iShares",  "EM"),
     ("VNM",  "베트남",     "Vietnam",      "VNM", "VanEck",   "EM"),
-    ("FLPK", "파키스탄",   "Pakistan",     "PAK", "Franklin", "FM"),
-    ("CHIX", "중국인터넷", "China Internet","CHN","GlobalX",  "EM"),
-    # ── Additional Franklin FTSE ──────────────────────────────────────────
+    # Franklin FTSE
     ("FLKR", "한국(FR)",   "Korea(FR)",    "KOR", "Franklin", "EM"),
     ("FLIN", "인도(FR)",   "India(FR)",    "IND", "Franklin", "EM"),
     ("FLTW", "대만(FR)",   "Taiwan(FR)",   "TWN", "Franklin", "EM"),
@@ -74,15 +70,17 @@ ALL_ETFS = [
     ("FLBR", "브라질(FR)", "Brazil(FR)",   "BRA", "Franklin", "EM"),
     ("FLMX", "멕시코(FR)", "Mexico(FR)",   "MEX", "Franklin", "EM"),
     ("FLSW", "스위스(FR)", "Switz(FR)",    "CHE", "Franklin", "DM"),
-    ("FLHK", "홍콩(FR)",   "HongKong(FR)", "HKG", "Franklin", "DM"),
+    ("FLSG", "싱가포르(FR)","Singapore(FR)","SGP","Franklin", "DM"),
 ]
 
 tickers = [e[0] for e in ALL_ETFS]
 print(f"Testing {len(tickers)} ETFs...")
+
+# Batch download prices
 data = yf.download(tickers, period="5d", auto_adjust=True,
                    progress=False, group_by="ticker")
 
-print(f"\n{'Ticker':8} {'Country':15} {'Provider':10} {'Region':4} {'Price':>8} {'Chg%':>7} {'Mcap $M':>12} {'Status'}")
+print(f"\n{'Ticker':8} {'Country':16} {'Provider':10} {'Reg':3} {'Price':>8} {'Chg%':>7} {'AUM $M':>10}  Status")
 print("-" * 80)
 
 results = {}
@@ -90,19 +88,29 @@ for ticker, ko, en, iso, provider, region in ALL_ETFS:
     try:
         closes = data[ticker]["Close"].dropna()
         if len(closes) < 2:
-            print(f"{ticker:8} {en:15} {provider:10} {region:4} {'—':>8} {'—':>7} {'no data':>12}")
+            print(f"{ticker:8} {en:16} {provider:10} {region:3} {'—':>8} {'—':>7} {'no data':>10}")
             continue
-        price = closes.iloc[-1]
-        chg   = (closes.iloc[-1] - closes.iloc[-2]) / closes.iloc[-2] * 100
-        t     = yf.Ticker(ticker)
-        mcap  = getattr(t.fast_info, "market_cap", None) or 0
-        mcap_m = mcap / 1e6
-        status = "✅" if mcap_m >= 100 else "❌ <$100M"
-        print(f"{ticker:8} {en:15} {provider:10} {region:4} ${price:>7.2f} {chg:>+6.2f}% ${mcap_m:>10,.0f}M  {status}")
-        if mcap_m >= 100:
-            results[ticker] = {"ko":ko,"en":en,"iso":iso,"region":region,
-                               "provider":provider,"price":price,"chg":chg,"mcap_m":mcap_m}
-    except Exception as e:
-        print(f"{ticker:8} {en:15} {'ERROR':>30} {e}")
+        price = float(closes.iloc[-1])
+        chg   = float((closes.iloc[-1] - closes.iloc[-2]) / closes.iloc[-2] * 100)
 
-print(f"\n✅ {len(results)} ETFs with market cap ≥ $100M")
+        # Use totalAssets for ETF AUM
+        try:
+            info = yf.Ticker(ticker).info
+            aum  = info.get("totalAssets", 0) or 0
+        except Exception:
+            aum = 0
+        aum_m = aum / 1e6
+
+        ok = aum_m >= 100
+        status = "✅" if ok else f"❌ ${aum_m:,.0f}M"
+        print(f"{ticker:8} {en:16} {provider:10} {region:3} ${price:>7.2f} {chg:>+6.2f}% ${aum_m:>8,.0f}M  {status}")
+        if ok:
+            results[ticker] = {"ko":ko,"en":en,"iso":iso,"region":region,
+                               "provider":provider,"price":price,"chg":chg,"aum_m":aum_m}
+    except Exception as e:
+        print(f"{ticker:8} {en:16} ERROR: {e}")
+
+print(f"\n{'='*80}")
+print(f"✅ {len(results)} ETFs with AUM ≥ $100M:")
+for t, v in sorted(results.items(), key=lambda x: -x[1]["aum_m"]):
+    print(f"  {t:8} {v['en']:20} {v['region']:4} AUM=${v['aum_m']:,.0f}M  chg={v['chg']:+.2f}%")
