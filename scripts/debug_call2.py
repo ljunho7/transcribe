@@ -149,7 +149,8 @@ Rules: Korean only, no markdown, opening greeting before [시장개요]"""
     print(f"  📦 Combined: {len(combined):,} chars\n", flush=True)
 
     # ── Call 2: Final news section ────────────────────────────────────────
-    news_min_chars = min(10000, int(len(combined) * 0.6))
+    # min = 30% of combined, floor 500, cap 10000
+    news_min_chars = max(500, min(10000, int(len(combined) * 0.3)))
     print(f"[Debug] Call 2: Final news (min {news_min_chars:,} chars)...", flush=True)
     news_prompt = f"""You are a professional Korean financial broadcast journalist.
 Today is {today} (Korean Standard Time).
