@@ -12,4 +12,4 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install yfinance requests pandas
-      - run: python -u scripts/debug_sectors.py
+      - run: python -u scripts/debug_countries.py
