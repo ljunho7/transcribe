@@ -1,16 +1,10 @@
 """
-Geographic grid treemap — tighter grids, smaller font fallbacks.
+Geographic grid treemap — live ETF data via yfinance.
+On Sunday UTC: uses Friday-to-Friday weekly returns.
 """
 import os, json, datetime
-
-def is_weekly_mode():
-    is_sunday = datetime.datetime.utcnow().weekday() == 6
-    if is_sunday:
-        print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
-    return is_sunday, math
 from PIL import Image, ImageDraw, ImageFont
 from zoneinfo import ZoneInfo
-from datetime import datetime
 
 OUTPUT = "assets/countries.jpg"
 FONTS  = "/usr/share/fonts/opentype/noto"
@@ -22,30 +16,59 @@ WHITE  = (255,255,255)
 GRAY   = (55, 65, 85)
 GREEN  = (0, 200, 110)
 
-DATA = {
-    "SPY":  ("미국",       +0.09), "EWC":  ("캐나다",     +0.25),
-    "EWW":  ("멕시코",     -0.34), "EWZ":  ("브라질",     -0.05),
-    "ARGT": ("아르헨티나", +0.73), "ECH":  ("칠레",       -1.36),
-    "EPU":  ("페루",       -1.33), "GXG":  ("콜롬비아",   +0.55),
-    "EWU":  ("영국",       -0.26), "EWG":  ("독일",       -0.75),
-    "EWP":  ("스페인",     -0.15), "EWL":  ("스위스",     -0.92),
-    "EWI":  ("이탈리아",   -0.37), "EWQ":  ("프랑스",     -0.23),
-    "EWD":  ("스웨덴",      0.00), "GREK": ("그리스",     -1.09),
-    "TUR":  ("터키",       +0.67), "EWN":  ("네덜란드",   -0.79),
-    "EPOL": ("폴란드",     +0.79), "EDEN": ("덴마크",     +0.08),
-    "EWO":  ("오스트리아", -0.78), "ENOR": ("노르웨이",   +0.99),
-    "EFNL": ("핀란드",     +0.88), "EWK":  ("벨기에",     +0.45),
-    "EIS":  ("이스라엘",   -0.56), "KSA":  ("사우디",     -0.48),
-    "UAE":  ("UAE",        -1.88), "KWT":  ("쿠웨이트",   +0.85),
-    "QAT":  ("카타르",     -0.80), "EZA":  ("남아공",     -1.18),
-    "EWJ":  ("일본",       -1.38), "EWY":  ("한국",       -2.65),
-    "INDA": ("인도",       -0.13), "EWT":  ("대만",       -1.32),
-    "MCHI": ("중국",       -0.29), "EWS":  ("싱가포르",   -0.67),
-    "EWH":  ("홍콩",       -0.39), "EWA":  ("호주",        0.04),
-    "VNM":  ("베트남",     +0.34), "EWM":  ("말레이시아", -1.08),
-    "THD":  ("태국",       -0.65), "EIDO": ("인도네시아", -1.52),
-    "EPHE": ("필리핀",     -0.68), "ENZL": ("뉴질랜드",   -0.45),
+# Korean name mapping for each ticker
+NAMES = {
+    "SPY":  "미국",    "EWC":  "캐나다",    "EWW":  "멕시코",   "EWZ":  "브라질",
+    "ARGT": "아르헨티나","ECH": "칠레",     "EPU":  "페루",     "GXG":  "콜롬비아",
+    "EWU":  "영국",    "EWG":  "독일",      "EWP":  "스페인",   "EWL":  "스위스",
+    "EWI":  "이탈리아","EWQ":  "프랑스",   "EWD":  "스웨덴",   "GREK": "그리스",
+    "TUR":  "터키",    "EWN":  "네덜란드",  "EPOL": "폴란드",   "EDEN": "덴마크",
+    "EWO":  "오스트리아","ENOR":"노르웨이", "EFNL": "핀란드",   "EWK":  "벨기에",
+    "EIS":  "이스라엘","KSA":  "사우디",    "UAE":  "UAE",      "KWT":  "쿠웨이트",
+    "QAT":  "카타르",  "EZA":  "남아공",    "EWJ":  "일본",     "EWY":  "한국",
+    "INDA": "인도",    "EWT":  "대만",      "MCHI": "중국",     "EWS":  "싱가포르",
+    "EWH":  "홍콩",    "EWA":  "호주",      "VNM":  "베트남",   "EWM":  "말레이시아",
+    "THD":  "태국",    "EIDO": "인도네시아","EPHE": "필리핀",   "ENZL": "뉴질랜드",
 }
+
+def is_weekly_mode():
+    is_sunday = datetime.datetime.utcnow().weekday() == 6
+    if is_sunday:
+        print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
+    return is_sunday
+
+def fetch_live_data():
+    """Fetch live ETF returns from yfinance. Weekly on Sunday, daily otherwise."""
+    import yfinance as yf
+    weekly = is_weekly_mode()
+    tickers = list(NAMES.keys())
+    period = "10d" if weekly else "5d"
+    print(f"  Downloading {len(tickers)} ETFs (period={period})...", flush=True)
+    data = yf.download(tickers, period=period, auto_adjust=True,
+                       progress=False, group_by="ticker")
+    result = {}
+    for ticker, ko in NAMES.items():
+        try:
+            closes = data[ticker]["Close"].dropna()
+            if len(closes) < 2:
+                continue
+            if weekly:
+                fridays = closes[closes.index.dayofweek == 4]
+                if len(fridays) >= 2:
+                    prev, curr = fridays.iloc[-2], fridays.iloc[-1]
+                else:
+                    prev, curr = closes.iloc[0], closes.iloc[-1]
+            else:
+                prev, curr = closes.iloc[-2], closes.iloc[-1]
+            chg = (curr - prev) / prev * 100
+            result[ticker] = (ko, round(chg, 2))
+        except Exception as e:
+            print(f"  ⚠️  {ticker}: {e}", flush=True)
+    print(f"  ✅ Got data for {len(result)} ETFs", flush=True)
+    return result
+
+# Will be populated at runtime
+DATA = {}
 
 # Tighter grids — no wasted columns
 LAYOUTS = {
@@ -160,6 +183,13 @@ def draw_region(draw, fonts, label, layout, rx, ry, rw, rh, lbl_col):
             col_pos += span
 
 def generate():
+    global DATA
+    print("[Countries] Fetching live ETF data...", flush=True)
+    DATA = fetch_live_data()
+    if not DATA:
+        print("  ⚠️  No live data — aborting", flush=True)
+        return
+
     img  = Image.new("RGB",(W,H),DARK)
     draw = ImageDraw.Draw(img)
     for y in range(H):
