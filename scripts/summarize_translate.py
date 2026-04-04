@@ -190,7 +190,7 @@ Output format:
 [뉴스]
 (15-20 minute section. 10-15 news stories from the transcripts. Each story:
 - 소제목: short Korean headline (under 20 chars, no bold/stars/numbers)
-- 2-3 paragraphs of detail in natural broadcast Korean
+- 2-10 paragraphs of detail in natural broadcast Korean
 Sort by cross-source importance. Combine duplicate stories.
 End with one closing sentence after the last story.)
 
