@@ -107,7 +107,7 @@ def fetch_country_data():
                 "ko": ko, "en": en, "region": region,
                 "price": price, "chg": chg, "mcap": mcap
             }
-            print(f"  ✅ {etf:6} {en:15} ${price:.2f}  {chg:+.2f}%  mcap=${mcap/1e9:.1f}B", flush=True)
+            print(f"  ✅ {etf:6} {en:15} ${price:.2f}  {chg:+.2f}%  mcap=${mcap/1e6:,.0f}M", flush=True)
         except Exception as e:
             print(f"  ❌ {etf:6} {en}: {e}", flush=True)
     return results
