@@ -26,8 +26,8 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Install FFmpeg
-        run: sudo apt-get install -y ffmpeg
+      - name: Install FFmpeg and Korean fonts
+        run: sudo apt-get install -y ffmpeg fonts-noto-cjk
 
       - name: Pre-download faster-whisper model
         run: python -c "from faster_whisper import WhisperModel; WhisperModel('tiny', device='cpu', compute_type='int8'); print('Model ready.')"
