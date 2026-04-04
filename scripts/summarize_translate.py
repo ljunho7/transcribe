@@ -82,7 +82,7 @@ def format_market_for_prompt(md):
     return "\n".join(lines)
 
 
-def call_gemini(client, prompt, required_tags, min_chars=500):
+def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=16384):
     """Try each model until one succeeds with a valid response."""
     last_error = None
     for model in MODELS:
@@ -94,7 +94,7 @@ def call_gemini(client, prompt, required_tags, min_chars=500):
                     model=model,
                     contents=prompt,
                     config=types.GenerateContentConfig(
-                        max_output_tokens=16384,
+                        max_output_tokens=max_tokens,
                         temperature=0.4,
                     ),
                 )
@@ -202,7 +202,8 @@ Rules:
     news_script = call_gemini(
         client, news_prompt,
         required_tags=["[뉴스]"],
-        min_chars=2000
+        min_chars=10000,
+        max_tokens=65536
     )
 
     # ── Combine and save ──────────────────────────────────────────────────
