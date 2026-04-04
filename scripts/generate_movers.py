@@ -4,12 +4,12 @@ Used as a second daily image (separate from background.jpg).
 """
 
 import os, json, datetime
-
+import requests
 def is_weekly_mode():
     is_sunday = datetime.datetime.utcnow().weekday() == 6
     if is_sunday:
         print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
-    return is_sunday, requests
+    return is_sunday
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
