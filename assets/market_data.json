@@ -34,8 +34,8 @@
   },
   "crypto": {
     "비트코인": {
-      "price": 67312.0,
-      "chg_pct": 0.57
+      "price": 67291.0,
+      "chg_pct": 0.54
     }
   },
   "rates": {
@@ -60,9 +60,176 @@
       "chg_bp": 0.0
     }
   },
-  "gainers": [],
-  "losers": [],
-  "sectors": {},
+  "gainers": [
+    {
+      "symbol": "SBAC",
+      "price": 204.04,
+      "chg_pct": 18.93,
+      "name": "SBA Communications"
+    },
+    {
+      "symbol": "LITE",
+      "price": 826.88,
+      "chg_pct": 8.14,
+      "name": "Lumentum"
+    },
+    {
+      "symbol": "CIEN",
+      "price": 447.76,
+      "chg_pct": 7.79,
+      "name": "Ciena"
+    },
+    {
+      "symbol": "SATS",
+      "price": 128.68,
+      "chg_pct": 6.7,
+      "name": "EchoStar"
+    },
+    {
+      "symbol": "INTC",
+      "price": 50.38,
+      "chg_pct": 4.89,
+      "name": "Intel"
+    },
+    {
+      "symbol": "CCI",
+      "price": 84.78,
+      "chg_pct": 4.89,
+      "name": "Crown Castle"
+    },
+    {
+      "symbol": "COHR",
+      "price": 258.16,
+      "chg_pct": 4.18,
+      "name": "Coherent Corp."
+    },
+    {
+      "symbol": "DASH",
+      "price": 156.45,
+      "chg_pct": 3.95,
+      "name": "DoorDash"
+    },
+    {
+      "symbol": "GLW",
+      "price": 147.92,
+      "chg_pct": 3.89,
+      "name": "Corning Inc."
+    },
+    {
+      "symbol": "LYB",
+      "price": 79.6,
+      "chg_pct": 3.77,
+      "name": "LyondellBasell"
+    }
+  ],
+  "losers": [
+    {
+      "symbol": "TSLA",
+      "price": 360.59,
+      "chg_pct": -5.42,
+      "name": "\"Tesla"
+    },
+    {
+      "symbol": "GE",
+      "price": 281.16,
+      "chg_pct": -3.94,
+      "name": "GE Aerospace"
+    },
+    {
+      "symbol": "SWK",
+      "price": 68.64,
+      "chg_pct": -3.55,
+      "name": "Stanley Black & Decker"
+    },
+    {
+      "symbol": "CCL",
+      "price": 25.64,
+      "chg_pct": -3.54,
+      "name": "Carnival"
+    },
+    {
+      "symbol": "BIIB",
+      "price": 177.34,
+      "chg_pct": -3.5,
+      "name": "Biogen"
+    },
+    {
+      "symbol": "GM",
+      "price": 72.54,
+      "chg_pct": -3.33,
+      "name": "General Motors"
+    },
+    {
+      "symbol": "PKG",
+      "price": 204.46,
+      "chg_pct": -3.22,
+      "name": "Packaging Corporation of America"
+    },
+    {
+      "symbol": "ARES",
+      "price": 102.43,
+      "chg_pct": -3.19,
+      "name": "Ares Management"
+    },
+    {
+      "symbol": "DVA",
+      "price": 145.58,
+      "chg_pct": -3.17,
+      "name": "DaVita"
+    },
+    {
+      "symbol": "PPG",
+      "price": 103.24,
+      "chg_pct": -3.03,
+      "name": "PPG Industries"
+    }
+  ],
+  "sectors": {
+    "XLK": {
+      "ko": "IT",
+      "chg_pct": 0.8
+    },
+    "XLF": {
+      "ko": "금융",
+      "chg_pct": 0.18
+    },
+    "XLV": {
+      "ko": "헬스케어",
+      "chg_pct": -0.62
+    },
+    "XLY": {
+      "ko": "임의소비재",
+      "chg_pct": -1.5
+    },
+    "XLC": {
+      "ko": "통신",
+      "chg_pct": 0.41
+    },
+    "XLI": {
+      "ko": "산업재",
+      "chg_pct": -0.4
+    },
+    "XLP": {
+      "ko": "필수소비재",
+      "chg_pct": 0.53
+    },
+    "XLE": {
+      "ko": "에너지",
+      "chg_pct": 0.47
+    },
+    "XLB": {
+      "ko": "소재",
+      "chg_pct": -0.1
+    },
+    "XLRE": {
+      "ko": "부동산",
+      "chg_pct": 1.61
+    },
+    "XLU": {
+      "ko": "유틸리티",
+      "chg_pct": 0.5
+    }
+  },
   "countries": {
     "SPY": {
       "ko": "미국",
