@@ -1,7 +1,7 @@
 """
 Step 3: Generate Korean script in separate Gemini calls:
   Call 1:       [시장개요] + [주요등락] + [섹터분석] + [국가별] — market data only
-  Pass 1 (N):   Summarize each podcast transcript individually (SUMMARY_RATIO of original)
+  Pass 1 (N):   Translate each podcast transcript individually into Korean
   Call 2 (final): [뉴스] — from combined Korean summaries
 """
 
@@ -19,8 +19,7 @@ MODELS = [
 MAX_RETRIES = 3
 RETRY_DELAY = 10
 
-MAX_CHARS_PER_TRANSCRIPT = 8000  # truncate each podcast before summarizing
-SUMMARY_RATIO = 0.5              # summarize each podcast to this fraction of its chars
+MAX_CHARS_PER_TRANSCRIPT = 8000  # truncate each podcast before translating
 
 
 def load_market_data():
@@ -170,14 +169,13 @@ Rules:
         max_tokens=8192
     )
 
-    # ── Pass 1: Summarize each podcast individually ───────────────────────
+    # ── Pass 1: Translate each podcast into Korean ────────────────────────
     transcript_dir = Path("temp/transcripts")
     transcript_files = sorted(transcript_dir.glob("*.txt"))
     if not transcript_files:
         raise ValueError("No transcripts found")
 
-    print(f"\n[Gemini] Pass 1: Summarizing {len(transcript_files)} podcasts "
-          f"(SUMMARY_RATIO={SUMMARY_RATIO})...", flush=True)
+    print(f"\n[Gemini] Pass 1: Translating {len(transcript_files)} podcasts into Korean...", flush=True)
 
     summaries = []
     for txt_file in transcript_files:
@@ -186,15 +184,12 @@ Rules:
         original_len = len(text)
         if len(text) > MAX_CHARS_PER_TRANSCRIPT:
             text = text[:MAX_CHARS_PER_TRANSCRIPT]
-        target_chars = int(len(text) * SUMMARY_RATIO)
-        print(f"\n  📄 {txt_file.name}: {original_len:,} → {len(text):,} chars "
-              f"(target summary: {target_chars:,} chars)", flush=True)
+        print(f"\n  📄 {txt_file.name}: {original_len:,} → {len(text):,} chars", flush=True)
 
-        summary_prompt = f"""Summarize the following English financial podcast transcript into Korean.
-Target length: approximately {target_chars} Korean characters.
-Focus on: key financial events, market moves, economic data, company news, geopolitical developments.
+        summary_prompt = f"""Translate the following English financial podcast transcript into Korean.
 Write in natural Korean prose — no bullet points, no headers, no tags.
-Do NOT add any intro or closing sentence — just the summary content.
+Do NOT add any intro or closing sentence — just the translated content.
+Focus on preserving all key details: financial events, market moves, economic data, company news, geopolitical developments.
 
 TRANSCRIPT:
 {text}"""
@@ -204,7 +199,7 @@ TRANSCRIPT:
                 client, summary_prompt,
                 required_tags=[],
                 min_chars=100,
-                max_tokens=4096
+                max_tokens=8192
             )
             summaries.append({"source": txt_file.stem, "summary": summary})
             print(f"  ✅ Summary: {len(summary):,} chars", flush=True)
@@ -248,10 +243,14 @@ Rules:
 - Once you have covered 10-15 distinct stories, STOP immediately
 - Do not pad or loop — end with a single closing sentence after the last story"""
 
+    # min_chars = 60% of combined summary size, capped at 10000
+    news_min_chars = min(10000, int(len(combined) * 0.6))
+    print(f"  🎯 News min_chars set to {news_min_chars:,} (60% of {len(combined):,} combined)", flush=True)
+
     news_script = call_gemini(
         client, news_prompt,
         required_tags=["[뉴스]"],
-        min_chars=10000,
+        min_chars=news_min_chars,
         max_tokens=65536
     )
 
