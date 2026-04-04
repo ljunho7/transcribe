@@ -208,6 +208,7 @@ TRANSCRIPT:
             )
             summaries.append({"source": txt_file.stem, "summary": summary})
             print(f"  ✅ Summary: {len(summary):,} chars", flush=True)
+            print(f"  --- Summary preview ---\n{summary}\n  ---", flush=True)
         except Exception as e:
             print(f"  ⚠️  Summary failed for {txt_file.name}: {e} — skipping", flush=True)
 
