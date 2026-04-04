@@ -150,7 +150,8 @@ Rules:
     for model in MODELS:
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                print(f"[Gemini] Trying {model} (attempt {attempt}/{MAX_RETRIES})...", flush=True)
+                prompt_chars = len(prompt)
+                print(f"[Gemini] Trying {model} (attempt {attempt}/{MAX_RETRIES}), prompt={prompt_chars:,} chars...", flush=True)
                 response = client.models.generate_content(
                     model=model,
                     contents=prompt,
@@ -169,6 +170,8 @@ Rules:
                 missing = [tag for tag in ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
                            if tag not in korean_script]
                 if missing or len(korean_script) < 2000:
+                    print(f"  ⚠️  Model response ({len(korean_script)} chars):", flush=True)
+                    print(f"  {korean_script[:500]}", flush=True)
                     raise ValueError(f"Invalid response: {len(korean_script)} chars, missing: {missing}")
 
                 print(f"✅ Script saved ({len(korean_script):,} chars) using {model}.", flush=True)
