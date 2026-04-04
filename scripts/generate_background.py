@@ -4,11 +4,14 @@ Step 0: Fetch live market data and generate assets/background.jpg
         Rates shown as bp change vs previous day, not % return.
 """
 
-import os, json, datetime
+import os, json, random
+import datetime as dt
+from datetime import datetime, timezone, timedelta
+from PIL import Image, ImageDraw, ImageFont
 
 def is_weekly_mode():
     """True on Sunday UTC = Monday KST morning. Use Friday-to-Friday weekly returns."""
-    is_sunday = datetime.datetime.utcnow().weekday() == 6
+    is_sunday = dt.datetime.utcnow().weekday() == 6
     if is_sunday:
         print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
     return is_sunday
@@ -16,9 +19,7 @@ def is_weekly_mode():
 def find_friday_close(history):
     """Find the most recent Friday close in a history DataFrame."""
     fridays = history[history.index.dayofweek == 4]
-    return fridays, random
-from datetime import datetime, timezone, timedelta
-from PIL import Image, ImageDraw, ImageFont
+    return fridays
 
 FONTS   = "/usr/share/fonts/opentype/noto"
 KO_BOLD = f"{FONTS}/NotoSansCJK-Bold.ttc"
