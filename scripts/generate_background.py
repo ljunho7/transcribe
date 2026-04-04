@@ -322,6 +322,7 @@ def generate_background(equity, fx, crypto, rates):
 
     # Save market data for script generation
     market_json = {
+        "return_mode": "weekly" if is_weekly_mode() else "daily",
         "equity":  {k: {"price": round(v[0],2), "chg_pct": round(v[1],2)} for k,v in equity.items()},
         "fx":      {k: {"price": round(v[0],4), "chg_pct": round(v[1],2)} for k,v in fx.items()},
         "crypto":  {k: {"price": round(v[0],0), "chg_pct": round(v[1],2)} for k,v in crypto.items()},
@@ -329,7 +330,7 @@ def generate_background(equity, fx, crypto, rates):
     }
     with open("assets/market_data.json", "w") as f:
         json.dump(market_json, f, ensure_ascii=False, indent=2)
-    print("✅ Market data saved → assets/market_data.json", flush=True)
+    print(f"✅ Market data saved → assets/market_data.json (mode: {market_json['return_mode']})", flush=True)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────
