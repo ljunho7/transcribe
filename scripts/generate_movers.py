@@ -49,7 +49,8 @@ def fetch_movers():
 
     # Batch download
     print(f"  Downloading price data...", flush=True)
-    data = yf.download(tickers, ("10d" if is_weekly_mode() else "2d"), auto_adjust=True,
+    period = "10d" if is_weekly_mode() else "2d"
+    data = yf.download(tickers, period=period, auto_adjust=True,
                        progress=False, group_by="ticker")
 
     changes = {}
@@ -65,6 +66,8 @@ def fetch_movers():
             pass
 
     print(f"  Got data for {len(changes)} tickers", flush=True)
+    if len(changes) == 0:
+        raise RuntimeError("No market data available — market may be closed (weekend/holiday)")
     sorted_chg = sorted(changes.items(), key=lambda x: x[1][1])
     losers  = [(s, p, c, n) for s, (p, c, n) in sorted_chg[:10]]
     gainers = [(s, p, c, n) for s, (p, c, n) in sorted_chg[-10:][::-1]]
