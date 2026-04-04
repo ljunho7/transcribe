@@ -3,7 +3,13 @@ Generates assets/movers.jpg — S&P 500 top 10 gainers and losers for the day.
 Used as a second daily image (separate from background.jpg).
 """
 
-import os, json, requests
+import os, json, datetime
+
+def is_weekly_mode():
+    is_sunday = datetime.datetime.utcnow().weekday() == 6
+    if is_sunday:
+        print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
+    return is_sunday, requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
@@ -41,7 +47,7 @@ def fetch_movers():
 
     # Batch download
     print(f"  Downloading price data...", flush=True)
-    data = yf.download(tickers, period="2d", auto_adjust=True,
+    data = yf.download(tickers, ("10d" if is_weekly_mode() else "2d"), auto_adjust=True,
                        progress=False, group_by="ticker")
 
     changes = {}
