@@ -41,15 +41,15 @@ jobs:
       - name: Generate S&P 500 sector map
         run: python -u scripts/generate_sectors.py
 
-      - name: Generate Country map
+      - name: Generate global country map
         run: python -u scripts/generate_countries.py
-        
+
       - name: Commit and push updated background
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git add assets/background.jpg assets/movers.jpg assets/sectors.jpg assets/market_data.json
+          git add assets/background.jpg assets/movers.jpg assets/sectors.jpg assets/countries.jpg assets/market_data.json
           git diff --staged --quiet || git commit -m "chore: update background $(date -u +'%Y-%m-%d')"
           git pull --rebase origin main
           git push
