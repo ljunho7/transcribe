@@ -125,7 +125,11 @@ Output format — use EXACTLY these section tags:
 (1-2 minute sector performance walkthrough. Go from best to worst performing sector. Note any notable divergences or themes across sectors.)
 
 [국가별]
-(1-2 minute global country market walkthrough. Cover major DM and EM countries. Highlight standout performers and laggards. Note any regional trends e.g. Asia up, Europe mixed.)
+(1-2 minute global country market commentary. Follow this structure:
+1. 미국(SPY), 한국(EWY), 중국(MCHI), 일본(EWJ) — briefly cover each with today's return and any notable context.
+2. 상위 3개국 — name the top 3 best performing countries today and why if mentioned in transcripts.
+3. 하위 3개국 — name the bottom 3 worst performing countries today and why if mentioned in transcripts.
+Keep it concise and broadcast-style.)
 
 [뉴스]
 (15-20 minute section. 10-15 news stories from the transcripts. Each story:
