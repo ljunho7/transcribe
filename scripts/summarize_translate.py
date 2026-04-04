@@ -214,8 +214,7 @@ Rules:
         f.write(korean_script)
 
     print(f"✅ Script saved ({len(korean_script):,} chars total)", flush=True)
-    print("
-" + "="*60, flush=True)
+    print("\n" + "="*60, flush=True)
     print(korean_script, flush=True)
     print("="*60, flush=True)
     return korean_script
