@@ -10,3 +10,4 @@ faster-whisper==1.0.3
 yfinance==0.2.54
 pillow
 pandas
+fredapi
