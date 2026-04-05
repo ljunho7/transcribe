@@ -12,14 +12,14 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
 MODELS = [
+    "gemini-2.5-flash",
     "gemini-3.1-flash-lite-preview",
     "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
 ]
 MAX_RETRIES = 3
 RETRY_DELAY = 10
 
-MAX_CHARS_PER_TRANSCRIPT = 8000  # truncate each podcast before translating
+MAX_CHARS_PER_TRANSCRIPT = 20000  # truncate each podcast before translating
 
 
 def load_market_data():
@@ -207,27 +207,29 @@ Rules:
         print(f"\n  📄 {txt_file.name}: {original_len:,} → {len(text):,} chars", flush=True)
 
         summary_prompt = f"""Translate the following English financial podcast transcript into Korean.
+This is a FULL TRANSLATION task, not a summary. Preserve all details, data points,
+quotes, and analysis. The Korean output should be roughly the same length as the
+English input (Korean text is naturally more compact, but do NOT omit content).
 
-IMPORTANT — Skip advertisements completely. Do not translate any of the following:
-- Sponsor messages or product promotions (e.g. "brought to you by...", "this episode is sponsored by...")
-- Insurance, software, financial product advertisements
-- Calls to action like "visit our website", "download our app", "use code..."
-- Any content that is clearly not financial/economic news
+SKIP ONLY these:
+- Sponsor messages or product promotions ("brought to you by...", "sponsored by...")
+- Calls to action ("visit our website", "download our app", "use code...")
 
-Translate ONLY the actual news and analysis content.
+Translate ALL actual news, analysis, interviews, and commentary — do not summarize or shorten.
 Write in natural Korean prose — no bullet points, no headers, no tags.
 Do NOT add any intro or closing sentence — just the translated content.
-Focus on: financial events, market moves, economic data, company news, geopolitical developments.
 
 TRANSCRIPT:
 {text}"""
 
+        # Translation should be at least 30% of input length (Korean is more compact)
+        translation_min = max(500, int(len(text) * 0.3))
         try:
             summary = call_gemini(
                 client, summary_prompt,
                 required_tags=[],
-                min_chars=100,
-                max_tokens=8192
+                min_chars=translation_min,
+                max_tokens=16384
             )
             summaries.append({"source": txt_file.stem, "summary": summary})
             print(f"  ✅ Summary: {len(summary):,} chars", flush=True)
