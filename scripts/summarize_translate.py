@@ -130,7 +130,7 @@ def summarize_and_translate():
     market_text = format_market_for_prompt(md)
     return_mode = md.get("return_mode", "daily")
     is_weekly = return_mode == "weekly"
-    period_ko = "이번 주" if is_weekly else "오늘"
+    period_ko = "지난주" if is_weekly else "오늘"
     period_en = "weekly (Friday-to-Friday)" if is_weekly else "daily"
     print(f"📊 Market return mode: {return_mode}", flush=True)
 
