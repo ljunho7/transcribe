@@ -279,27 +279,70 @@ def _safe_filename(section_label, identifier):
     return os.path.join(OUTPUT_DIR, f"{safe}.png")
 
 
+def prefetch_price_data(tickers):
+    """Batch-download price history + names for all yfinance tickers in one call.
+    Returns {ticker: {"close": Series, "name": str}}."""
+    if not tickers:
+        return {}
+
+    print(f"\n📦  Batch-downloading {len(tickers)} tickers ...", flush=True)
+    import time
+    data = yf.download(tickers, period=PRICE_PERIOD, auto_adjust=True,
+                       progress=False, group_by="ticker")
+    cache = {}
+    for ticker in tickers:
+        try:
+            if len(tickers) == 1:
+                closes = data["Close"].dropna().squeeze()
+            else:
+                closes = data[ticker]["Close"].dropna().squeeze()
+            if closes.empty or len(closes) < 3:
+                print(f"    ⚠  No price data for {ticker}", flush=True)
+                continue
+            # Fetch name with a small delay to avoid rate-limiting
+            try:
+                time.sleep(0.3)
+                info = yf.Ticker(ticker).info
+                name = info.get("shortName") or info.get("longName") or ""
+            except Exception:
+                name = ""
+            cache[ticker] = {"close": closes, "name": name}
+            print(f"    ✓  {ticker} ({name or '?'}): {len(closes)} rows", flush=True)
+        except Exception as e:
+            print(f"    ⚠  {ticker}: {e}", flush=True)
+    return cache
+
+
+# Module-level cache filled by generate_charts() before chart rendering
+_price_cache = {}
+
+
 def make_price_chart(ticker, output_path):
     """1-month daily price chart. Dark background, green/red line."""
     try:
-        # Use .history() instead of .download() — less aggressive rate limiting
-        t    = yf.Ticker(ticker)
-        data = t.history(period=PRICE_PERIOD)
+        if ticker in _price_cache:
+            close     = _price_cache[ticker]["close"]
+            full_name = _price_cache[ticker]["name"]
+        else:
+            # Fallback: individual fetch (shouldn't happen with prefetch)
+            t    = yf.Ticker(ticker)
+            data = t.history(period=PRICE_PERIOD)
+            if data.empty or len(data) < 3:
+                print(f"\n    ⚠  No price data for {ticker}")
+                return False
+            close = data["Close"].squeeze()
+            try:
+                info      = t.info
+                full_name = info.get("shortName") or info.get("longName") or ""
+            except Exception:
+                full_name = ""
 
-        if data.empty or len(data) < 3:
-            print(f"\n    ⚠  No price data for {ticker}")
+        if len(close) < 3:
+            print(f"\n    ⚠  Not enough data for {ticker}")
             return False
 
-        close = data["Close"].squeeze()
         pct   = (close.iloc[-1] / close.iloc[0] - 1) * 100
         color = "#00e676" if pct >= 0 else "#ff5252"
-
-        # Fetch company/instrument name — reuse same Ticker object
-        try:
-            info      = t.info
-            full_name = info.get("shortName") or info.get("longName") or ""
-        except Exception:
-            full_name = ""
         title_line = f"{full_name}  ({ticker})" if full_name else ticker
 
         fig, ax = plt.subplots(figsize=(16, 9))
@@ -494,7 +537,18 @@ def generate_charts(section_data):
     Mutates section_data in-place, adding a "charts" key to each entry.
     Returns section_data.
     """
+    global _price_cache
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # Collect all yfinance tickers and batch-download in one API call
+    yf_tickers = []
+    for entry in section_data.values():
+        for ident in entry.get("tickers", []):
+            if not ident.startswith("FRED:") and ident not in yf_tickers:
+                yf_tickers.append(ident)
+
+    if yf_tickers:
+        _price_cache = prefetch_price_data(yf_tickers)
 
     for section, entry in section_data.items():
         tickers = entry.get("tickers", [])
