@@ -317,14 +317,32 @@ def _safe_filename(section_label, identifier):
 
 def prefetch_price_data(tickers):
     """Batch-download price history + names for all yfinance tickers in one call.
+    Retries with exponential backoff on rate-limit errors.
     Returns {ticker: {"close": Series, "name": str}}."""
     if not tickers:
         return {}
 
-    print(f"\n📦  Batch-downloading {len(tickers)} tickers ...", flush=True)
     import time
-    data = yf.download(tickers, period=PRICE_PERIOD, auto_adjust=True,
-                       progress=False, group_by="ticker")
+
+    # ── Batch download with retry ────────────────────────────────────────
+    data = None
+    for attempt in range(4):  # up to 4 attempts: 0s, 15s, 30s, 60s
+        if attempt > 0:
+            wait = 15 * (2 ** (attempt - 1))
+            print(f"    ⏳ Rate limited — waiting {wait}s before retry {attempt+1}/4 ...",
+                  flush=True)
+            time.sleep(wait)
+        print(f"\n📦  Batch-downloading {len(tickers)} tickers (attempt {attempt+1}) ...",
+              flush=True)
+        data = yf.download(tickers, period=PRICE_PERIOD, auto_adjust=True,
+                           progress=False, group_by="ticker")
+        if not data.empty:
+            break
+    else:
+        print("    ⚠  All download attempts failed", flush=True)
+        return {}
+
+    # ── Parse results + fetch names ──────────────────────────────────────
     cache = {}
     for ticker in tickers:
         try:
@@ -337,7 +355,7 @@ def prefetch_price_data(tickers):
                 continue
             # Fetch name with a small delay to avoid rate-limiting
             try:
-                time.sleep(0.3)
+                time.sleep(0.5)
                 info = yf.Ticker(ticker).info
                 name = info.get("shortName") or info.get("longName") or ""
             except Exception:
