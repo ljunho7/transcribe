@@ -94,6 +94,7 @@ except ImportError:
 # ── Config ───────────────────────────────────────────────────────────────────
 GROQ_API_KEY    = os.environ.get("GROQ_API_KEY", "")
 FRED_API_KEY    = os.environ.get("FRED_API_KEY", "")
+AV_API_KEY      = os.environ.get("ALPHA_VANTAGE_API_KEY", "")
 GROQ_MODEL      = "llama-3.3-70b-versatile"
 OUTPUT_DIR      = "temp/charts"
 TICKER_MAP_FILE = "temp/ticker_map.json"
@@ -315,50 +316,113 @@ def _safe_filename(section_label, identifier):
     return os.path.join(OUTPUT_DIR, f"{safe_type}__{safe_ident}.png")
 
 
+def _fetch_alpha_vantage(ticker):
+    """Fetch ~30 days of daily closes from Alpha Vantage.
+    Returns (pd.Series of closes, name_str) or (None, None) on failure."""
+    import requests as req
+
+    if not AV_API_KEY:
+        return None, None
+
+    # Alpha Vantage ticker mapping — strip yfinance suffixes
+    av_ticker = ticker.replace("=F", "").replace("=X", "")
+    if ticker.startswith("^"):
+        # Indices: Alpha Vantage doesn't support ^GSPC directly;
+        # use equivalent ETFs as proxies
+        INDEX_TO_ETF = {
+            "^GSPC": "SPY", "^IXIC": "QQQ", "^DJI": "DIA",
+            "^SOX": "SOXX", "^TNX": "TLT",
+        }
+        av_ticker = INDEX_TO_ETF.get(ticker, av_ticker.replace("^", ""))
+
+    try:
+        url = (f"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY"
+               f"&symbol={av_ticker}&outputsize=compact&apikey={AV_API_KEY}")
+        r = req.get(url, timeout=15)
+        data = r.json()
+
+        if "Time Series (Daily)" not in data:
+            err = data.get("Note") or data.get("Information") or data.get("Error Message", "")
+            print(f"    ⚠  AV: {av_ticker}: {err[:80]}", flush=True)
+            return None, None
+
+        ts = data["Time Series (Daily)"]
+        # Parse into pandas Series, take last ~25 trading days
+        import pandas as pd
+        dates  = sorted(ts.keys())[-25:]
+        closes = pd.Series(
+            {pd.Timestamp(d): float(ts[d]["4. close"]) for d in dates}
+        )
+        closes.index.name = "Date"
+
+        # Get name from search endpoint (optional, don't fail on it)
+        name = ""
+        try:
+            search_url = (f"https://www.alphavantage.co/query?function=SYMBOL_SEARCH"
+                          f"&keywords={av_ticker}&apikey={AV_API_KEY}")
+            sr = req.get(search_url, timeout=10).json()
+            matches = sr.get("bestMatches", [])
+            if matches:
+                name = matches[0].get("2. name", "")
+        except Exception:
+            pass
+
+        return closes, name
+
+    except Exception as exc:
+        print(f"    ⚠  AV error for {av_ticker}: {exc}", flush=True)
+        return None, None
+
+
 def prefetch_price_data(tickers):
-    """Download price history + names one ticker at a time with delays.
-    Avoids Yahoo rate limits that batch yf.download() triggers.
+    """Download price history + names. Tries yfinance first, falls back
+    to Alpha Vantage on rate-limit errors.
     Returns {ticker: {"close": Series, "name": str}}."""
     if not tickers:
         return {}
 
     import time
-    print(f"\n📦  Downloading {len(tickers)} tickers individually ...", flush=True)
+    print(f"\n📦  Downloading {len(tickers)} tickers (yfinance → Alpha Vantage fallback) ...",
+          flush=True)
 
     cache = {}
+    yf_blocked = False  # once yfinance is rate-limited, skip it for remaining tickers
+
     for i, ticker in enumerate(tickers):
         if i > 0:
-            time.sleep(1.5)  # 1.5s between each ticker
+            time.sleep(1.0)
 
-        for attempt in range(3):
+        # ── Try yfinance first (unless already blocked) ──────────────
+        if not yf_blocked:
             try:
-                if attempt > 0:
-                    wait = 10 * attempt
-                    print(f"    ⏳ Retry {attempt+1}/3 for {ticker} in {wait}s ...", flush=True)
-                    time.sleep(wait)
-
                 t = yf.Ticker(ticker)
                 hist = t.history(period=PRICE_PERIOD)
-
-                if hist.empty or len(hist) < 3:
-                    print(f"    ⚠  No price data for {ticker}", flush=True)
-                    break
-
-                closes = hist["Close"].squeeze()
-                try:
-                    name = (t.info.get("shortName") or t.info.get("longName") or "")
-                except Exception:
-                    name = ""
-
-                cache[ticker] = {"close": closes, "name": name}
-                print(f"    ✓  {ticker} ({name or '?'}): {len(closes)} rows", flush=True)
-                break
-
-            except Exception as exc:
-                if "Too Many Requests" in str(exc) and attempt < 2:
+                if not hist.empty and len(hist) >= 3:
+                    closes = hist["Close"].squeeze()
+                    try:
+                        name = (t.info.get("shortName") or t.info.get("longName") or "")
+                    except Exception:
+                        name = ""
+                    cache[ticker] = {"close": closes, "name": name}
+                    print(f"    ✓  {ticker} ({name or '?'}): {len(closes)} rows [yfinance]",
+                          flush=True)
                     continue
-                print(f"    ✗  {ticker}: {exc}", flush=True)
-                break
+            except Exception as exc:
+                if "Too Many Requests" in str(exc) or "Rate" in str(exc):
+                    print(f"    ⚠  yfinance rate-limited — switching to Alpha Vantage for all remaining",
+                          flush=True)
+                    yf_blocked = True
+                else:
+                    print(f"    ⚠  yfinance {ticker}: {exc}", flush=True)
+
+        # ── Fallback: Alpha Vantage ──────────────────────────────────
+        closes, name = _fetch_alpha_vantage(ticker)
+        if closes is not None and len(closes) >= 3:
+            cache[ticker] = {"close": closes, "name": name}
+            print(f"    ✓  {ticker} ({name or '?'}): {len(closes)} rows [Alpha Vantage]",
+                  flush=True)
+        else:
+            print(f"    ✗  {ticker}: no data from yfinance or Alpha Vantage", flush=True)
 
     print(f"    📊 Fetched {len(cache)}/{len(tickers)} tickers", flush=True)
     return cache
@@ -375,18 +439,23 @@ def make_price_chart(ticker, output_path):
             close     = _price_cache[ticker]["close"]
             full_name = _price_cache[ticker]["name"]
         else:
-            # Fallback: individual fetch (shouldn't happen with prefetch)
-            t    = yf.Ticker(ticker)
-            data = t.history(period=PRICE_PERIOD)
-            if data.empty or len(data) < 3:
-                print(f"\n    ⚠  No price data for {ticker}")
-                return False
-            close = data["Close"].squeeze()
-            try:
-                info      = t.info
-                full_name = info.get("shortName") or info.get("longName") or ""
-            except Exception:
-                full_name = ""
+            # Fallback: try Alpha Vantage then yfinance
+            close, full_name = _fetch_alpha_vantage(ticker)
+            if close is None or len(close) < 3:
+                try:
+                    t    = yf.Ticker(ticker)
+                    data = t.history(period=PRICE_PERIOD)
+                    if data.empty or len(data) < 3:
+                        print(f"\n    ⚠  No price data for {ticker}")
+                        return False
+                    close = data["Close"].squeeze()
+                    try:
+                        full_name = (t.info.get("shortName") or t.info.get("longName") or "")
+                    except Exception:
+                        full_name = ""
+                except Exception:
+                    print(f"\n    ⚠  No price data for {ticker}")
+                    return False
 
         if len(close) < 3:
             print(f"\n    ⚠  Not enough data for {ticker}")
