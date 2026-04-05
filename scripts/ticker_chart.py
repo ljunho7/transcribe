@@ -100,8 +100,8 @@ TICKER_MAP_FILE = "temp/ticker_map.json"
 PRICE_PERIOD    = "1mo"    # yfinance lookback
 FRED_MONTHS     = 24       # how many months of FRED history to show
 
-# Series that should be displayed as YoY % change instead of raw index level.
-# These are price indices where the level itself is uninformative.
+# Series that should be displayed as YoY % change instead of raw level/index.
+# These are cumulative levels or price indices where YoY is more informative.
 FRED_YOY_SERIES = {
     "CPIAUCSL",   # CPI All Items
     "CPILFESL",   # Core CPI (ex food & energy)
@@ -109,6 +109,10 @@ FRED_YOY_SERIES = {
     "PCEPILFE",   # Core PCE (ex food & energy)
     "PPIFIS",     # PPI Final Demand
     "PPIACO",     # PPI All Commodities
+    "RSXFS",      # Retail Sales (level in millions $)
+    "INDPRO",     # Industrial Production (index level)
+    "GDP",        # GDP (level in billions)
+    "HOUST",      # Housing Starts (level in thousands)
 }
 
 # Human-readable labels for FRED series IDs shown in chart titles
@@ -122,12 +126,12 @@ FRED_LABELS = {
     "FEDFUNDS":   "Fed Funds Rate (%)",
     "DGS10":      "10-Year Treasury Yield (%)",
     "DGS2":       "2-Year Treasury Yield (%)",
-    "RSXFS":      "Retail Sales (excl. food)",
+    "RSXFS":      "Retail Sales YoY (%)",
     "UMCSENT":    "Consumer Sentiment (U of Michigan)",
-    "INDPRO":     "Industrial Production (index)",
-    "HOUST":      "Housing Starts (thousands)",
+    "INDPRO":     "Industrial Production YoY (%)",
+    "HOUST":      "Housing Starts YoY (%)",
     "ICSA":       "Initial Jobless Claims (thousands)",
-    "GDP":        "GDP (billions, SAAR)",
+    "GDP":        "GDP YoY (%)",
     "DCOILWTICO": "WTI Crude Oil Price ($/barrel)",
     "DEXUSEU":    "USD/EUR Exchange Rate",
 }
@@ -201,13 +205,16 @@ TYPE 2 — FRED macro series (official economic releases):
   For crude oil always use FRED:DCOILWTICO, never FRED:CRUDE or any other variant.
 
 Ticker rules:
-  - Maximum 3 identifiers per section
+  - Each section's text starts with [MAX N tickers, MAX M bullets]
+    You MUST NOT exceed those limits. Use FEWER if the story doesn't
+    mention that many distinct instruments.
   - Use [] if no clearly relevant identifier exists
   - Only include identifiers you are highly confident are correct
 
 ──────────────────────────────────────────
 BULLETS — Korean bullet points for 뉴스: sections only:
-  - Write 2-3 bullet points summarizing the key facts of the story
+  - Follow the [MAX M bullets] limit specified in each section's text
+  - Use FEWER bullets if the story has fewer key facts
   - Each bullet: short Korean phrase, 20 characters or fewer
   - No bullet character — just the text (it will be added in rendering)
   - For non-뉴스 sections: always use empty array []
@@ -215,10 +222,14 @@ BULLETS — Korean bullet points for 뉴스: sections only:
 ──────────────────────────────────────────
 Output format example:
 {
-  "시장개요": {"tickers": ["^GSPC", "^IXIC", "^DJI"], "bullets": []},
-  "뉴스: 기술주 강세, 나이키는 부진": {
-    "tickers": ["META", "GOOGL", "NKE"],
-    "bullets": ["메타·알파벳 8~9% 반등", "나이키 중국 매출 20% 감소", "나이키 주가 14% 급락"]
+  "시장개요": {"tickers": ["^GSPC", "^IXIC"], "bullets": []},
+  "뉴스: 글로벌 증시 동향 (long story)": {
+    "tickers": ["^GSPC", "CL=F", "INTC", "META", "NKE"],
+    "bullets": ["3대 지수 3% 상승", "브렌트유 8% 급등", "인텔 17% 급등", "메타·알파벳 반등", "나이키 14% 폭락"]
+  },
+  "뉴스: 나이키 중국 매출 경고 (short story)": {
+    "tickers": ["NKE"],
+    "bullets": ["중국 매출 20% 감소 경고", "7분기 연속 감소"]
   }
 }
 
@@ -242,7 +253,17 @@ def extract_section_data(sections):
         if short_key in compact:
             short_key = f"{short_key}…{i}"
         short_to_full[short_key] = k
-        compact[short_key] = v[:400]
+        # Compute per-section ticker/bullet limits based on text length
+        full_len = len(v)
+        if full_len < 200:
+            max_t, max_b = 1, 2
+        elif full_len < 500:
+            max_t, max_b = 2, 3
+        elif full_len < 1000:
+            max_t, max_b = 3, 4
+        else:
+            max_t, max_b = min(5, 10), min(5, 10)
+        compact[short_key] = f"[MAX {max_t} tickers, MAX {max_b} bullets] " + v[:400]
 
     user_message = json.dumps(compact, ensure_ascii=False, indent=2)
 
