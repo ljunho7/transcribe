@@ -1,5 +1,5 @@
 {
-  "return_mode": "daily",
+  "return_mode": "weekly",
   "equity": {
     "S&P 500": {
       "price": 6582.69,
@@ -20,22 +20,22 @@
   },
   "fx": {
     "USD/KRW": {
-      "price": 1514.0,
-      "chg_pct": 0.32
+      "price": 1510.54,
+      "chg_pct": 0.09
     },
     "EUR/USD": {
-      "price": 1.1522,
-      "chg_pct": -0.59
+      "price": 1.1526,
+      "chg_pct": -0.14
     },
     "DXY": {
-      "price": 100.186,
-      "chg_pct": 0.16
+      "price": 100.03,
+      "chg_pct": 0.38
     }
   },
   "crypto": {
     "비트코인": {
-      "price": 67291.0,
-      "chg_pct": 0.54
+      "price": 66931.0,
+      "chg_pct": 0.89
     }
   },
   "rates": {
@@ -233,179 +233,179 @@
   "countries": {
     "SPY": {
       "ko": "미국",
-      "chg_pct": 0.09
+      "chg_pct": -2.23
     },
     "EWC": {
       "ko": "캐나다",
-      "chg_pct": 0.25
+      "chg_pct": 0.79
     },
     "EWW": {
       "ko": "멕시코",
-      "chg_pct": -0.34
+      "chg_pct": 3.21
     },
     "EWZ": {
       "ko": "브라질",
-      "chg_pct": -0.05
+      "chg_pct": 4.48
     },
     "ARGT": {
       "ko": "아르헨티나",
-      "chg_pct": 0.73
+      "chg_pct": 2.19
     },
     "ECH": {
       "ko": "칠레",
-      "chg_pct": -1.36
+      "chg_pct": 2.15
     },
     "EPU": {
       "ko": "페루",
-      "chg_pct": -1.33
+      "chg_pct": 3.24
     },
     "GXG": {
       "ko": "콜롬비아",
-      "chg_pct": 0.55
+      "chg_pct": 2.36
     },
     "EWU": {
       "ko": "영국",
-      "chg_pct": -0.26
+      "chg_pct": 0.62
     },
     "EWG": {
       "ko": "독일",
-      "chg_pct": -0.75
+      "chg_pct": -0.31
     },
     "EWP": {
       "ko": "스페인",
-      "chg_pct": -0.15
+      "chg_pct": 0.64
     },
     "EWL": {
       "ko": "스위스",
-      "chg_pct": -0.92
+      "chg_pct": 1.19
     },
     "EWI": {
       "ko": "이탈리아",
-      "chg_pct": -0.37
+      "chg_pct": 0.79
     },
     "EWQ": {
       "ko": "프랑스",
-      "chg_pct": -0.23
+      "chg_pct": 0.46
     },
     "EWD": {
       "ko": "스웨덴",
-      "chg_pct": 0.0
+      "chg_pct": 0.19
     },
     "GREK": {
       "ko": "그리스",
-      "chg_pct": -1.09
+      "chg_pct": -1.36
     },
     "TUR": {
       "ko": "터키",
-      "chg_pct": 0.67
+      "chg_pct": -2.01
     },
     "EWN": {
       "ko": "네덜란드",
-      "chg_pct": -0.79
+      "chg_pct": -1.13
     },
     "EPOL": {
       "ko": "폴란드",
-      "chg_pct": 0.79
+      "chg_pct": 0.29
     },
     "EDEN": {
       "ko": "덴마크",
-      "chg_pct": 0.08
+      "chg_pct": 0.94
     },
     "EWO": {
       "ko": "오스트리아",
-      "chg_pct": -0.78
+      "chg_pct": 1.75
     },
     "ENOR": {
       "ko": "노르웨이",
-      "chg_pct": 0.99
+      "chg_pct": -0.96
     },
     "EFNL": {
       "ko": "핀란드",
-      "chg_pct": 0.88
+      "chg_pct": -0.98
     },
     "EWK": {
       "ko": "벨기에",
-      "chg_pct": 0.45
+      "chg_pct": 1.03
     },
     "EIS": {
       "ko": "이스라엘",
-      "chg_pct": -0.56
+      "chg_pct": -5.23
     },
     "KSA": {
       "ko": "사우디",
-      "chg_pct": -0.48
+      "chg_pct": 3.07
     },
     "UAE": {
       "ko": "UAE",
-      "chg_pct": -1.88
+      "chg_pct": 2.01
     },
     "KWT": {
       "ko": "쿠웨이트",
-      "chg_pct": 0.85
+      "chg_pct": -1.04
     },
     "QAT": {
       "ko": "카타르",
-      "chg_pct": -0.8
+      "chg_pct": -0.71
     },
     "EZA": {
       "ko": "남아공",
-      "chg_pct": -1.18
+      "chg_pct": 2.64
     },
     "EWJ": {
       "ko": "일본",
-      "chg_pct": -1.38
+      "chg_pct": 0.28
     },
     "EWY": {
       "ko": "한국",
-      "chg_pct": -2.65
+      "chg_pct": -3.82
     },
     "INDA": {
       "ko": "인도",
-      "chg_pct": -0.13
+      "chg_pct": -1.65
     },
     "EWT": {
       "ko": "대만",
-      "chg_pct": -1.32
+      "chg_pct": -0.36
     },
     "MCHI": {
       "ko": "중국",
-      "chg_pct": -0.29
+      "chg_pct": -0.71
     },
     "EWS": {
       "ko": "싱가포르",
-      "chg_pct": -0.67
+      "chg_pct": 0.8
     },
     "EWH": {
       "ko": "홍콩",
-      "chg_pct": -0.39
+      "chg_pct": 0.27
     },
     "EWA": {
       "ko": "호주",
-      "chg_pct": 0.04
+      "chg_pct": -0.33
     },
     "VNM": {
       "ko": "베트남",
-      "chg_pct": 0.34
+      "chg_pct": 1.77
     },
     "EWM": {
       "ko": "말레이시아",
-      "chg_pct": -1.08
+      "chg_pct": -1.76
     },
     "THD": {
       "ko": "태국",
-      "chg_pct": -0.65
+      "chg_pct": 1.43
     },
     "EIDO": {
       "ko": "인도네시아",
-      "chg_pct": -1.52
+      "chg_pct": 1.79
     },
     "EPHE": {
       "ko": "필리핀",
-      "chg_pct": -0.68
+      "chg_pct": 0.45
     },
     "ENZL": {
       "ko": "뉴질랜드",
-      "chg_pct": -0.45
+      "chg_pct": -1.14
     }
   }
 }
