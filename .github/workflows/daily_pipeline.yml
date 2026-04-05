@@ -45,6 +45,12 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python -u scripts/summarize_translate.py
 
+      - name: Step 3.5 — Extract tickers and generate charts (Groq + FRED)
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python -u scripts/ticker_chart.py
+
       - name: Step 4 — Generate Korean voice (gTTS)
         run: python -u scripts/generate_voice.py
 
