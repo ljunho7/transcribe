@@ -591,9 +591,15 @@ def generate_charts(section_data):
     global _price_cache
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # Collect all yfinance tickers and batch-download in one API call
+    # Fixed sections use pre-generated images (background/movers/sectors/countries)
+    # — skip chart generation for them to avoid wasting yfinance API calls
+    SKIP_SECTIONS = {"시장개요", "주요등락", "섹터분석", "국가별"}
+
+    # Collect yfinance tickers only from 뉴스 sections
     yf_tickers = []
-    for entry in section_data.values():
+    for section, entry in section_data.items():
+        if section in SKIP_SECTIONS:
+            continue
         for ident in entry.get("tickers", []):
             if not ident.startswith("FRED:") and ident not in yf_tickers:
                 yf_tickers.append(ident)
@@ -603,7 +609,7 @@ def generate_charts(section_data):
 
     for section, entry in section_data.items():
         tickers = entry.get("tickers", [])
-        if not tickers:
+        if not tickers or section in SKIP_SECTIONS:
             entry["charts"] = []
             continue
 
