@@ -151,18 +151,20 @@ def parse_sections(text):
     m = re.search(r'\[뉴스\](.*?)(?=\Z)', text, re.DOTALL)
     if m:
         news_block = m.group(1).strip()
+        # Stories are separated by blank lines (double newline).
+        # Within each story, title and body are on consecutive lines (single newline).
         chunks = [c.strip() for c in re.split(r'\n{2,}', news_block) if c.strip()]
-        i = 0
-        while i < len(chunks) - 1:
-            title = chunks[i]
-            body  = chunks[i + 1]
-            if title.startswith('오늘 준비한'):
+        for chunk in chunks:
+            lines = chunk.split('\n', 1)
+            title = lines[0].strip()
+            body  = lines[1].strip() if len(lines) > 1 else ""
+            # Skip closing remarks
+            if title.startswith('오늘 준비한') or title.startswith('지금까지'):
                 break
-            if len(title) > 30 and ('년' in title[:10] or title[0].isdigit()):
-                i += 1
+            # Skip chunks with no body (single-line fragments)
+            if not body:
                 continue
             sections[f'뉴스: {title}'] = body
-            i += 2
 
     return sections
 
