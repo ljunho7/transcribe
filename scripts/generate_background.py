@@ -16,10 +16,14 @@ def is_weekly_mode():
         print("📅 Sunday UTC — using weekly (Fri-to-Fri) returns", flush=True)
     return is_sunday
 
-def find_friday_close(history):
-    """Find the most recent Friday close in a history DataFrame."""
-    fridays = history[history.index.dayofweek == 4]
-    return fridays
+def weekly_endpoints(closes):
+    """Return (prev_week_close, curr_week_close) using the last trading day
+    of each calendar week. Handles Friday holidays gracefully."""
+    iso = closes.index.isocalendar()
+    weekly_last = closes.groupby([iso.year, iso.week]).last()
+    if len(weekly_last) >= 2:
+        return weekly_last.iloc[-2], weekly_last.iloc[-1]
+    return closes.iloc[0], closes.iloc[-1]
 
 FONTS   = "/usr/share/fonts/opentype/noto"
 KO_BOLD = f"{FONTS}/NotoSansCJK-Bold.ttc"
@@ -44,13 +48,17 @@ GOLD_DIM   = (130, 100,  40)
 def fetch_equity():
     """S&P500, NASDAQ, DOW, SOX — returns (price, pct_change)"""
     import yfinance as yf
+    weekly = is_weekly_mode()
     result = {}
     for label, sym in [("S&P 500","^GSPC"),("NASDAQ","^IXIC"),("DOW","^DJI"),("반도체(SOX)","^SOX")]:
         try:
-            h = yf.Ticker(sym).history(period="5d")
+            h = yf.Ticker(sym).history(period="10d" if weekly else "5d")
             print(f"  {label}: {len(h)} rows", flush=True)
             if len(h) >= 2:
-                prev, curr = h["Close"].iloc[-2], h["Close"].iloc[-1]
+                if weekly:
+                    prev, curr = weekly_endpoints(h["Close"].squeeze())
+                else:
+                    prev, curr = h["Close"].iloc[-2], h["Close"].iloc[-1]
                 result[label] = (curr, (curr-prev)/prev*100)
                 print(f"    ✅ {curr:.2f}  {(curr-prev)/prev*100:+.2f}%", flush=True)
         except Exception as e:
@@ -61,13 +69,17 @@ def fetch_equity():
 def fetch_fx():
     """USD/KRW, EUR/USD, DXY — returns (price, pct_change)"""
     import yfinance as yf
+    weekly = is_weekly_mode()
     result = {}
     for label, sym in [("USD/KRW","KRW=X"),("EUR/USD","EURUSD=X"),("DXY","DX-Y.NYB")]:
         try:
-            h = yf.Ticker(sym).history(period="5d")
+            h = yf.Ticker(sym).history(period="10d" if weekly else "5d")
             print(f"  {label}: {len(h)} rows", flush=True)
             if len(h) >= 2:
-                prev, curr = h["Close"].iloc[-2], h["Close"].iloc[-1]
+                if weekly:
+                    prev, curr = weekly_endpoints(h["Close"].squeeze())
+                else:
+                    prev, curr = h["Close"].iloc[-2], h["Close"].iloc[-1]
                 result[label] = (curr, (curr-prev)/prev*100)
                 print(f"    ✅ {curr:.4f}  {(curr-prev)/prev*100:+.2f}%", flush=True)
         except Exception as e:
@@ -85,11 +97,7 @@ def fetch_crypto():
         print(f"  BTC: {len(h)} rows", flush=True)
         if len(h) >= 2:
             if is_weekly_mode():
-                fridays = h[h.index.dayofweek == 4]
-                if len(fridays) >= 2:
-                    prev, curr = fridays["Close"].iloc[-2], fridays["Close"].iloc[-1]
-                else:
-                    prev, curr = h["Close"].iloc[0], h["Close"].iloc[-1]
+                prev, curr = weekly_endpoints(h["Close"].squeeze())
             else:
                 prev, curr = h["Close"].iloc[-2], h["Close"].iloc[-1]
             result["비트코인"] = (curr, (curr-prev)/prev*100)
@@ -102,6 +110,7 @@ def fetch_crypto():
 def fetch_rates():
     """2yr, 5yr, 10yr, 30yr + Fed Funds via FRED. Published EOD ~4-5PM ET."""
     import requests
+    weekly = is_weekly_mode()
     result = {}
     for label, series in [
         ("미국 2년물",   "DGS2"),
@@ -117,8 +126,27 @@ def fetch_rates():
             )
             valid = [l for l in r.text.strip().split("\n")
                      if "," in l and l.split(",")[1].strip() not in ("", ".")]
-            curr_val = float(valid[-1].split(",")[1])
-            prev_val = float(valid[-2].split(",")[1])
+            if weekly:
+                # Group by ISO week, take last trading day of each week
+                week_buckets = {}
+                for line in valid:
+                    date_str = line.split(",")[0]
+                    try:
+                        d = dt.datetime.strptime(date_str, "%Y-%m-%d")
+                        key = d.isocalendar()[:2]  # (year, week)
+                        week_buckets[key] = line
+                    except ValueError:
+                        continue
+                weeks = sorted(week_buckets.keys())
+                if len(weeks) >= 2:
+                    curr_val = float(week_buckets[weeks[-1]].split(",")[1])
+                    prev_val = float(week_buckets[weeks[-2]].split(",")[1])
+                else:
+                    curr_val = float(valid[-1].split(",")[1])
+                    prev_val = float(valid[-2].split(",")[1])
+            else:
+                curr_val = float(valid[-1].split(",")[1])
+                prev_val = float(valid[-2].split(",")[1])
             bp = (curr_val - prev_val) * 100
             result[label] = (curr_val, bp)
             print(f"  ✅ {label}: {curr_val:.2f}%  {bp:+.1f}bp", flush=True)
@@ -277,7 +305,7 @@ def generate_background(equity, fx, crypto, rates):
     draw.ellipse([(80,118),(96,134)], fill=GREEN)
     draw.text((110,112), "미국 증시 마감 후 브리핑", font=fr, fill=WHITE_DIM)
     draw.text((80,175),  "월스트리트",   font=fh, fill=WHITE)
-    draw.text((80,328),  "오늘의 시황",  font=fl, fill=GREEN)
+    draw.text((80,328),  "주간 시황" if is_weekly_mode() else "오늘의 시황",  font=fl, fill=GREEN)
     draw.text((80,420),  now_kst.strftime("%Y년 %m월 %d일"), font=fm, fill=GREEN)
     draw.text((80,490),  "글로벌 경제 · 금융 · 비즈니스 핵심 뉴스",
               font=fr, fill=(90,100,130))
@@ -287,24 +315,27 @@ def generate_background(equity, fx, crypto, rates):
     px, py = int(W*0.525), 55
 
     # Header
+    weekly = is_weekly_mode()
+    weekly_tag = "  ·  주간 수익률" if weekly else ""
     draw.text((px, py),
-              f"시장 데이터  ·  {now_ny.strftime('%m/%d %H:%M')} NY시간",
+              f"시장 데이터  ·  {now_ny.strftime('%m/%d %H:%M')} NY시간{weekly_tag}",
               font=fs, fill=(55,70,105))
     py += 32
     draw.line([(px, py),(px+560, py)], fill=(28,38,65), width=1)
     py += 14
 
+    wk = " (주간)" if weekly else ""
     if equity:
-        py = draw_group(draw,"주식 (Equity)", equity,  px, py, fgt, fs, fgt)
+        py = draw_group(draw,f"주식 (Equity){wk}", equity,  px, py, fgt, fs, fgt)
     if fx:
-        py = draw_group(draw,"외환 (FX)",     fx,      px, py, fgt, fs, fgt)
+        py = draw_group(draw,f"외환 (FX){wk}",     fx,      px, py, fgt, fs, fgt)
     if crypto:
-        py = draw_group(draw,"암호화폐",      crypto,  px, py, fgt, fs, fgt)
+        py = draw_group(draw,f"암호화폐{wk}",      crypto,  px, py, fgt, fs, fgt)
 
     print(f"  [Draw] equity={len(equity)} fx={len(fx)} crypto={len(crypto)} rates={len(rates)} py_before_rates={py}", flush=True)
 
     if rates:
-        py = draw_group(draw,"금리 (bp 변화)", rates,  px, py, fgt, fs, fgt,
+        py = draw_group(draw,f"금리 (bp 변화){wk}", rates,  px, py, fgt, fs, fgt,
                         is_rates=True)
         print(f"  [Draw] rates drawn, py_after={py}", flush=True)
     else:

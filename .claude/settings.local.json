@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile scripts/generate_background.py)",
+      "Bash(python -m py_compile scripts/generate_movers.py)",
+      "Bash(python -m py_compile scripts/generate_sectors.py)",
+      "Bash(python -m py_compile scripts/generate_countries.py)"
+    ]
+  }
+}

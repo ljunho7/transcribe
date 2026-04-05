@@ -182,17 +182,23 @@ TYPE 1 — yfinance tickers (market prices, updated daily):
   - ETFs / sector funds  →  plain symbol               (SPY, XLK, XLE, EWJ, EWY)
 
 TYPE 2 — FRED macro series (official economic releases):
-  Prefix with "FRED:" — examples:
-  - FRED:PAYEMS    → US Nonfarm Payrolls
-  - FRED:UNRATE    → US Unemployment Rate
-  - FRED:CPIAUCSL  → Consumer Price Index (CPI)
-  - FRED:PCEPILFE  → Core PCE inflation
-  - FRED:FEDFUNDS  → Federal Funds Rate
-  - FRED:UMCSENT   → Consumer Sentiment (U of Michigan)
-  - FRED:RSXFS     → Retail Sales (ex food services)
-  - FRED:ICSA      → Initial Jobless Claims
-  - FRED:HOUST     → Housing Starts
-  - FRED:GDP       → Gross Domestic Product
+  Prefix with "FRED:" — ONLY use series IDs from this exact list:
+  - FRED:PAYEMS      → US Nonfarm Payrolls
+  - FRED:UNRATE      → US Unemployment Rate
+  - FRED:CPIAUCSL    → Consumer Price Index (CPI)
+  - FRED:PCEPILFE    → Core PCE inflation
+  - FRED:FEDFUNDS    → Federal Funds Rate
+  - FRED:UMCSENT     → Consumer Sentiment (U of Michigan)
+  - FRED:RSXFS       → Retail Sales (ex food services)
+  - FRED:ICSA        → Initial Jobless Claims
+  - FRED:HOUST       → Housing Starts
+  - FRED:GDP         → Gross Domestic Product
+  - FRED:DCOILWTICO  → WTI Crude Oil Price
+  - FRED:DEXUSEU     → USD/EUR Exchange Rate
+  - FRED:DGS10       → 10-Year Treasury Yield
+
+  CRITICAL: Never invent FRED series IDs. Only use IDs from the list above.
+  For crude oil always use FRED:DCOILWTICO, never FRED:CRUDE or any other variant.
 
 Ticker rules:
   - Maximum 3 identifiers per section
@@ -276,8 +282,10 @@ def _safe_filename(section_label, identifier):
 def make_price_chart(ticker, output_path):
     """1-month daily price chart. Dark background, green/red line."""
     try:
-        data = yf.download(ticker, period=PRICE_PERIOD, interval="1d",
-                           progress=False, auto_adjust=True)
+        # Use .history() instead of .download() — less aggressive rate limiting
+        t    = yf.Ticker(ticker)
+        data = t.history(period=PRICE_PERIOD)
+
         if data.empty or len(data) < 3:
             print(f"\n    ⚠  No price data for {ticker}")
             return False
@@ -286,9 +294,9 @@ def make_price_chart(ticker, output_path):
         pct   = (close.iloc[-1] / close.iloc[0] - 1) * 100
         color = "#00e676" if pct >= 0 else "#ff5252"
 
-        # Fetch company/instrument name — gracefully skip if unavailable
+        # Fetch company/instrument name — reuse same Ticker object
         try:
-            info      = yf.Ticker(ticker).info
+            info      = t.info
             full_name = info.get("shortName") or info.get("longName") or ""
         except Exception:
             full_name = ""

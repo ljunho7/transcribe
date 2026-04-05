@@ -61,13 +61,23 @@ def fetch_sector_data():
     data = yf.download(tickers, period=period, auto_adjust=True,
                        progress=False, group_by="ticker")
     results = {}
+    weekly = is_weekly_mode()
     for etf, ko, en in SECTORS:
         try:
             closes = data[etf]["Close"].dropna()
             if len(closes) < 2:
                 print(f"  ⚠️  {etf}: only {len(closes)} rows", flush=True)
                 continue
-            chg  = (closes.iloc[-1] - closes.iloc[-2]) / closes.iloc[-2] * 100
+            if weekly:
+                iso = closes.index.isocalendar()
+                weekly_last = closes.groupby([iso.year, iso.week]).last()
+                if len(weekly_last) >= 2:
+                    prev, curr = weekly_last.iloc[-2], weekly_last.iloc[-1]
+                else:
+                    prev, curr = closes.iloc[0], closes.iloc[-1]
+            else:
+                prev, curr = closes.iloc[-2], closes.iloc[-1]
+            chg  = (curr - prev) / prev * 100
             price = closes.iloc[-1]
 
             # Live market cap for box sizing
@@ -152,9 +162,10 @@ def generate_sector_image(sectors):
     NY  = ZoneInfo("America/New_York")
     now = datetime.now(NY)
 
+    weekly_tag = "  ·  주간 수익률" if is_weekly_mode() else ""
     draw.text((80, 28), "S&P 500  섹터별 수익률", font=fh, fill=WHITE)
     draw.text((780, 40),
-              f"SPDR ETF 시가총액 기준  ·  {now.strftime('%m/%d  %H:%M')} NY시간",
+              f"SPDR ETF 시가총액 기준  ·  {now.strftime('%m/%d  %H:%M')} NY시간{weekly_tag}",
               font=fs, fill=(70,85,120))
     draw.line([(80,90),(W-80,90)], fill=(0,200,110), width=2)
 
@@ -217,9 +228,8 @@ def generate_sector_image(sectors):
     draw.text((lx+160,ly), "■ 하락", font=fmono, fill=(80,100,200))
     draw.text((lx+240,ly), "  (한국식: 적=상승, 청=하락)", font=fmono, fill=GRAY)
 
-    draw.text((80,H-40),
-              "SPDR 섹터 ETF 기준  ·  USD 수익률  ·  박스크기 = ETF 시가총액",
-              font=fmono, fill=(45,55,75))
+    bottom_label = "SPDR 섹터 ETF 기준  ·  USD 주간 수익률  ·  박스크기 = ETF 시가총액" if is_weekly_mode() else "SPDR 섹터 ETF 기준  ·  USD 수익률  ·  박스크기 = ETF 시가총액"
+    draw.text((80,H-40), bottom_label, font=fmono, fill=(45,55,75))
 
     os.makedirs("assets", exist_ok=True)
     img.save(OUTPUT, "JPEG", quality=95)

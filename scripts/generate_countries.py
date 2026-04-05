@@ -55,9 +55,10 @@ def fetch_live_data():
             if len(closes) < 2:
                 continue
             if weekly:
-                fridays = closes[closes.index.dayofweek == 4]
-                if len(fridays) >= 2:
-                    prev, curr = fridays.iloc[-2], fridays.iloc[-1]
+                iso = closes.index.isocalendar()
+                weekly_last = closes.groupby([iso.year, iso.week]).last()
+                if len(weekly_last) >= 2:
+                    prev, curr = weekly_last.iloc[-2], weekly_last.iloc[-1]
                 else:
                     prev, curr = closes.iloc[0], closes.iloc[-1]
             else:
@@ -215,9 +216,10 @@ def generate():
 
     NY  = ZoneInfo("America/New_York"); now = datetime.now(NY)
     draw.rectangle([(0,0),(6,H)], fill=GREEN)
+    weekly_tag = "  ·  주간 수익률" if is_weekly_mode() else ""
     draw.text((80,22), "글로벌 증시 국가별 수익률", font=fh, fill=WHITE)
     draw.text((760,34),
-              f"iShares · VanEck · GlobalX ETF  ·  {now.strftime('%m/%d %H:%M')} NY시간",
+              f"iShares · VanEck · GlobalX ETF  ·  {now.strftime('%m/%d %H:%M')} NY시간{weekly_tag}",
               font=fs, fill=(70,85,120))
     draw.line([(80,82),(W-80,82)], fill=GREEN, width=2)
 
@@ -260,7 +262,8 @@ def generate():
     draw.text((lx,    ly), "■ 상승", font=fmono, fill=(200,60,60))
     draw.text((lx+75, ly), "■ 보합", font=fmono, fill=(50,65,100))
     draw.text((lx+150,ly), "■ 하락", font=fmono, fill=(60,100,210))
-    draw.text((lx+225,ly), "  (적=상승  청=하락)  ·  지리적 위치 기반 배치",
+    weekly_suffix = "  ·  주간 수익률" if is_weekly_mode() else ""
+    draw.text((lx+225,ly), f"  (적=상승  청=하락)  ·  지리적 위치 기반 배치{weekly_suffix}",
               font=fmono, fill=GRAY)
     draw.text((1480,  ly), "iShares / VanEck / GlobalX ETF  ·  USD",
               font=fmono, fill=GRAY)

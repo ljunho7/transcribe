@@ -53,13 +53,21 @@ def fetch_movers():
     data = yf.download(tickers, period=period, auto_adjust=True,
                        progress=False, group_by="ticker")
 
+    weekly = is_weekly_mode()
     changes = {}
     for sym in tickers:
         try:
             closes = data[sym]["Close"].dropna()
             if len(closes) >= 2:
-                prev = closes.iloc[-2]
-                curr = closes.iloc[-1]
+                if weekly:
+                    iso = closes.index.isocalendar()
+                    weekly_last = closes.groupby([iso.year, iso.week]).last()
+                    if len(weekly_last) >= 2:
+                        prev, curr = weekly_last.iloc[-2], weekly_last.iloc[-1]
+                    else:
+                        prev, curr = closes.iloc[0], closes.iloc[-1]
+                else:
+                    prev, curr = closes.iloc[-2], closes.iloc[-1]
                 chg  = (curr - prev) / prev * 100
                 changes[sym] = (curr, chg, names.get(sym, sym))
         except Exception:
@@ -105,8 +113,9 @@ def generate_movers_image(gainers, losers):
     now = datetime.now(NY)
 
     # Header
+    weekly_tag = "  ·  주간 수익률" if is_weekly_mode() else ""
     draw.text((80, 40),
-              f"S&P 500  주요 등락 종목  ·  {now.strftime('%m/%d  %H:%M')} NY시간",
+              f"S&P 500  주요 등락 종목  ·  {now.strftime('%m/%d  %H:%M')} NY시간{weekly_tag}",
               font=fs, fill=(70, 85, 120))
     draw.line([(80, 88), (W-80, 88)], fill=GREEN, width=2)
 
@@ -153,9 +162,8 @@ def generate_movers_image(gainers, losers):
 
     # Bottom
     draw.rectangle([(0, H-60), (W, H)], fill=(10, 16, 30))
-    draw.text((80, H-40),
-              "S&P 500 구성 종목 기준  ·  매일 업데이트",
-              font=fmono, fill=(45, 55, 75))
+    bottom_label = "S&P 500 구성 종목 기준  ·  주간 업데이트" if is_weekly_mode() else "S&P 500 구성 종목 기준  ·  매일 업데이트"
+    draw.text((80, H-40), bottom_label, font=fmono, fill=(45, 55, 75))
     draw.text((W-290, H-40), "ECONOMY BRIEFING", font=fmono, fill=GREEN_DIM)
 
     os.makedirs("assets", exist_ok=True)
