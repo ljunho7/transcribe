@@ -20,22 +20,22 @@
   },
   "fx": {
     "USD/KRW": {
-      "price": 1510.59,
-      "chg_pct": 0.15
+      "price": 1510.17,
+      "chg_pct": 0.12
     },
     "EUR/USD": {
-      "price": 1.1523,
-      "chg_pct": -0.1
+      "price": 1.1517,
+      "chg_pct": -0.22
     },
     "DXY": {
-      "price": 100.03,
-      "chg_pct": -0.12
+      "price": 100.219,
+      "chg_pct": 0.07
     }
   },
   "crypto": {
     "비트코인": {
-      "price": 67541.0,
-      "chg_pct": 2.4
+      "price": 68793.0,
+      "chg_pct": 4.3
     }
   },
   "rates": {
