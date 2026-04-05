@@ -261,15 +261,30 @@ KOREAN TEXTS:
 Your response MUST start with this exact tag on its own line:
 [뉴스]
 
-Then write each story:
-- 소제목: short Korean headline (under 20 chars, no bold, no stars, no numbers)
-- 중요도에 따라 자연스러운 방송 한국어로 작성 (length based on importance)
+Then write each story in this EXACT format:
 
-Sort stories by importance. End with a single closing sentence.
+소제목 (short Korean headline, under 20 chars)
+본문 내용 (body paragraph, natural broadcast Korean)
 
-Rules:
+CRITICAL FORMATTING RULES:
+- Title and body must be on consecutive lines (single newline between them)
+- Stories must be separated by a BLANK LINE (double newline)
+- End with a single closing sentence starting with "지금까지"
+
+Example format:
+[뉴스]
+미국 증시 상승 마감
+이번 주 미국 증시는 3대 주요 지수 모두 상승세로 마감했습니다. 나스닥 지수가 4.4% 상승하며...
+
+트럼프 관세 정책 평가
+도널드 트럼프 대통령의 관세 정책이 시행 1년을 맞았습니다. 전문가들은...
+
+지금까지 오늘의 주요 경제 뉴스였습니다.
+
+Other rules:
+- Sort stories by importance
 - Korean only (company/person names in English OK)
-- No markdown, no bold, no numbering
+- No markdown, no bold, no numbering, no bullet points
 - Each story must be unique — never repeat the same topic
 - Once all unique stories are covered, STOP"""
 
