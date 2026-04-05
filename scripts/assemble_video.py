@@ -342,9 +342,16 @@ def assemble():
         print(f"\n  [{i+1}/{len(manifest)}] {audio.name}", flush=True)
 
         if section == "[뉴스]":
-            # Look up charts + bullets from ticker_chart output
+            # Look up charts + bullets from ticker_chart output.
+            # Keys in ticker_map.json may include body text after the headline,
+            # so use prefix matching instead of exact key lookup.
             section_key = f"뉴스: {headline}"
-            sd_entry    = section_data.get(section_key, {})
+            sd_entry = section_data.get(section_key, {})
+            if not sd_entry:
+                for k, v in section_data.items():
+                    if k.startswith(section_key):
+                        sd_entry = v
+                        break
             charts      = [p for p in sd_entry.get("charts", []) if os.path.exists(p)]
             bullets     = sd_entry.get("bullets", [])
 
