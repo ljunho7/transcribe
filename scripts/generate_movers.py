@@ -138,7 +138,7 @@ def generate_movers_image(gainers, losers):
         draw.text((lx,           158), "티커",  font=fmono, fill=GRAY)
         draw.text((lx + 130,     158), "종목명",  font=fmono, fill=GRAY)
         draw.text((lx + 480,     158), "등락률", font=fmono, fill=GRAY)
-        draw.text((lx + 590,     158), "종가",   font=fmono, fill=GRAY)
+        draw.text((lx + 640,     158), "종가",   font=fmono, fill=GRAY)
         draw.line([(lx, 182), (lx + 820, 182)], fill=(22, 32, 55), width=1)
 
         # Rows
@@ -158,7 +158,7 @@ def generate_movers_image(gainers, losers):
             arrow = "▲" if chg >= 0 else "▼"
             draw.text((lx+490, ry+16),  f"{arrow}{abs(chg):.2f}%", font=fr, fill=color)
             # Price
-            draw.text((lx+600, ry+16),  f"${price:.2f}",      font=fr,    fill=WHITE)
+            draw.text((lx+650, ry+16),  f"${price:.2f}",      font=fr,    fill=WHITE)
 
     # Bottom
     draw.rectangle([(0, H-60), (W, H)], fill=(10, 16, 30))

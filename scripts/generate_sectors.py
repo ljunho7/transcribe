@@ -44,14 +44,28 @@ SECTORS = [
 ]
 
 
-def chg_color(chg):
-    if abs(chg) < 0.05:
-        return (30, 38, 60)
-    intensity = min(abs(chg) / 4.0, 1.0)
-    if chg > 0:
-        return (int(80+130*intensity), int(15+10*(1-intensity)), int(15+10*(1-intensity)))
-    else:
-        return (int(15+10*(1-intensity)), int(20+20*(1-intensity)), int(80+130*intensity))
+def _make_chg_color(all_changes):
+    """Build a gradient color function normalized to the actual data range.
+    Positive: dark neutral → red.  Negative: dark neutral → blue."""
+    max_pos = max((c for c in all_changes if c > 0), default=1.0)
+    max_neg = min((c for c in all_changes if c < 0), default=-1.0)
+
+    MID  = (22, 30, 52)
+    RED  = (210, 40, 40)
+    BLUE = (40, 70, 210)
+
+    def chg_color(chg):
+        if chg >= 0:
+            t = min(chg / max_pos, 1.0) if max_pos > 0 else 0.0
+        else:
+            t = min(abs(chg) / abs(max_neg), 1.0) if max_neg < 0 else 0.0
+        target = RED if chg >= 0 else BLUE
+        return (
+            int(MID[0] + (target[0] - MID[0]) * t),
+            int(MID[1] + (target[1] - MID[1]) * t),
+            int(MID[2] + (target[2] - MID[2]) * t),
+        )
+    return chg_color
 
 
 def fetch_sector_data():
@@ -144,6 +158,10 @@ def squarify(items, x, y, w, h):
 
 
 def generate_sector_image(sectors):
+    # Build gradient color function from actual data range
+    all_changes = [v["chg"] for v in sectors.values()]
+    chg_color = _make_chg_color(all_changes)
+
     img  = Image.new("RGB", (W, H), DARK)
     draw = ImageDraw.Draw(img)
 
@@ -198,7 +216,12 @@ def generate_sector_image(sectors):
             fko, fch = fmono, fmono
 
         arrow   = "▲" if v["chg"] >= 0 else "▼"
-        chg_col = (255,180,180) if v["chg"] >= 0 else (180,200,255)
+        # Gradient text color
+        tc = min(abs(v["chg"]) / 3.0, 1.0)
+        if v["chg"] >= 0:
+            chg_col = (255, int(220 - 60*tc), int(220 - 60*tc))
+        else:
+            chg_col = (int(220 - 70*tc), int(220 - 30*tc), 255)
         chg_str = f"{arrow}{abs(v['chg']):.2f}%"
         ko_text = v["ko"]
 
@@ -222,11 +245,22 @@ def generate_sector_image(sectors):
                 draw.text((cx-tcw//2, cy2-fch.size//2), chg_str, font=fch, fill=chg_col)
 
     # Legend
+    # Gradient legend bar
     lx, ly = W-440, H-45
-    draw.text((lx,    ly), "■ 상승", font=fmono, fill=(200,80,80))
-    draw.text((lx+80, ly), "■ 보합", font=fmono, fill=(60,70,100))
-    draw.text((lx+160,ly), "■ 하락", font=fmono, fill=(80,100,200))
-    draw.text((lx+240,ly), "  (한국식: 적=상승, 청=하락)", font=fmono, fill=GRAY)
+    bar_w, bar_h = 180, 14
+    bar_y = ly + 2
+    for i in range(bar_w):
+        t = i / (bar_w - 1)  # 0 → 1 (blue → red)
+        if t < 0.5:
+            s = 1 - t * 2
+            c = (int(22 + (40-22)*s), int(30 + (70-30)*s), int(52 + (210-52)*s))
+        else:
+            s = (t - 0.5) * 2
+            c = (int(22 + (210-22)*s), int(30 + (40-30)*s), int(52 + (40-52)*s))
+        draw.line([(lx+i, bar_y), (lx+i, bar_y+bar_h)], fill=c)
+    draw.text((lx,         ly+18), "하락", font=fmono, fill=(60,100,210))
+    draw.text((lx+bar_w-30, ly+18), "상승", font=fmono, fill=(200,60,60))
+    draw.text((lx+bar_w+15, ly), "  (한국식: 적=상승, 청=하락)", font=fmono, fill=GRAY)
 
     bottom_label = "SPDR 섹터 ETF 기준  ·  USD 주간 수익률  ·  박스크기 = ETF 시가총액" if is_weekly_mode() else "SPDR 섹터 ETF 기준  ·  USD 수익률  ·  박스크기 = ETF 시가총액"
     draw.text((80,H-40), bottom_label, font=fmono, fill=(45,55,75))

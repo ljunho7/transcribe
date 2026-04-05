@@ -102,19 +102,44 @@ LAYOUTS = {
     ],
 }
 
-def chg_color(chg):
-    if abs(chg) < 0.05:
-        return (28, 36, 58)
-    intensity = min(abs(chg) / 3.5, 1.0)
-    if chg > 0:
-        return (int(55+165*intensity), int(10+8*(1-intensity)), int(10+8*(1-intensity)))
-    else:
-        return (int(10+8*(1-intensity)), int(15+15*(1-intensity)), int(55+165*intensity))
+def _make_chg_color(all_changes):
+    """Build a gradient color function normalized to the actual data range.
+    Returns a closure: chg → (R, G, B).
+    Positive: dark neutral → red.  Negative: dark neutral → blue."""
+    max_pos = max((c for c in all_changes if c > 0), default=1.0)
+    max_neg = min((c for c in all_changes if c < 0), default=-1.0)
+
+    # Neutral midpoint (chg ≈ 0)
+    MID = (22, 30, 52)
+    # Full red (max positive)
+    RED = (210, 40, 40)
+    # Full blue (max negative)
+    BLUE = (40, 70, 210)
+
+    def chg_color(chg):
+        if chg >= 0:
+            t = min(chg / max_pos, 1.0) if max_pos > 0 else 0.0
+        else:
+            t = min(abs(chg) / abs(max_neg), 1.0) if max_neg < 0 else 0.0
+        target = RED if chg >= 0 else BLUE
+        return (
+            int(MID[0] + (target[0] - MID[0]) * t),
+            int(MID[1] + (target[1] - MID[1]) * t),
+            int(MID[2] + (target[2] - MID[2]) * t),
+        )
+    return chg_color
 
 def fit_label(draw, cx, cy, bw, bh, ko, chg, fonts):
-    arrow   = "▲" if chg > 0.05 else ("▼" if chg < -0.05 else "")
-    chg_col = (255,160,160) if chg>0.05 else ((150,190,255) if chg<-0.05 else (155,165,185))
-    chg_str = f"{arrow}{abs(chg):.2f}%" if abs(chg) >= 0.05 else f"{chg:.2f}%"
+    arrow   = "▲" if chg > 0 else ("▼" if chg < 0 else "")
+    # Gradient text: white-ish with warm/cool tint based on sign
+    t = min(abs(chg) / 3.0, 1.0)
+    if chg > 0:
+        chg_col = (255, int(220 - 60*t), int(220 - 60*t))
+    elif chg < 0:
+        chg_col = (int(220 - 70*t), int(220 - 30*t), 255)
+    else:
+        chg_col = (190, 200, 215)
+    chg_str = f"{arrow}{abs(chg):.2f}%"
     for fko, fch in fonts:
         nh  = fko.size + 2
         ch2 = fch.size + 2
@@ -186,12 +211,16 @@ def draw_region(draw, fonts, label, layout, rx, ry, rw, rh, lbl_col):
             col_pos += span
 
 def generate():
-    global DATA
+    global DATA, chg_color
     print("[Countries] Fetching live ETF data...", flush=True)
     DATA = fetch_live_data()
     if not DATA:
         print("  ⚠️  No live data — aborting", flush=True)
         return
+
+    # Build gradient color function from actual data range
+    all_changes = [chg for _, chg in DATA.values()]
+    chg_color = _make_chg_color(all_changes)
 
     img  = Image.new("RGB",(W,H),DARK)
     draw = ImageDraw.Draw(img)
@@ -259,11 +288,22 @@ def generate():
         draw.line([(cx,MY),(cx,MY+MH)], fill=(20,30,50), width=1)
 
     lx, ly = 80, H-42
-    draw.text((lx,    ly), "■ 상승", font=fmono, fill=(200,60,60))
-    draw.text((lx+75, ly), "■ 보합", font=fmono, fill=(50,65,100))
-    draw.text((lx+150,ly), "■ 하락", font=fmono, fill=(60,100,210))
+    # Draw gradient legend bar
+    bar_w, bar_h = 180, 14
+    bar_y = ly + 2
+    for i in range(bar_w):
+        t = i / (bar_w - 1)  # 0 → 1 (blue → red)
+        if t < 0.5:
+            s = 1 - t * 2  # 1 → 0
+            c = (int(22 + (40-22)*s), int(30 + (70-30)*s), int(52 + (210-52)*s))
+        else:
+            s = (t - 0.5) * 2  # 0 → 1
+            c = (int(22 + (210-22)*s), int(30 + (40-30)*s), int(52 + (40-52)*s))
+        draw.line([(lx+i, bar_y), (lx+i, bar_y+bar_h)], fill=c)
+    draw.text((lx,        ly+18), "하락", font=fmono, fill=(60,100,210))
+    draw.text((lx+bar_w-30, ly+18), "상승", font=fmono, fill=(200,60,60))
     weekly_suffix = "  ·  주간 수익률" if is_weekly_mode() else ""
-    draw.text((lx+225,ly), f"  (적=상승  청=하락)  ·  지리적 위치 기반 배치{weekly_suffix}",
+    draw.text((lx+bar_w+15, ly), f"(적=상승  청=하락)  ·  지리적 위치 기반 배치{weekly_suffix}",
               font=fmono, fill=GRAY)
     draw.text((1480,  ly), "iShares / VanEck / GlobalX ETF  ·  USD",
               font=fmono, fill=GRAY)
