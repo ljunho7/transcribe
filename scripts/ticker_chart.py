@@ -309,7 +309,7 @@ def extract_section_data(sections):
 
 def _safe_filename(section_label, identifier):
     safe = re.sub(r'[^\w]', '_', f"{section_label}_{identifier}")
-    safe = safe[:80]  # prevent "File name too long" on Linux (max 255 bytes)
+    safe = safe[:20]  # keep filenames short
     return os.path.join(OUTPUT_DIR, f"{safe}.png")
 
 
