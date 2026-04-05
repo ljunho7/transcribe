@@ -231,7 +231,19 @@ def extract_section_data(sections):
         sys.exit("GROQ_API_KEY environment variable not set.")
 
     client = Groq(api_key=GROQ_API_KEY)
-    compact = {k: v[:400] for k, v in sections.items()}
+
+    # Shorten section keys to save tokens — Groq echoes keys in its response.
+    # Long paragraph-as-title keys can eat the entire token budget.
+    short_to_full = {}
+    compact = {}
+    for i, (k, v) in enumerate(sections.items()):
+        short_key = k[:60] if len(k) > 60 else k
+        # Ensure uniqueness
+        if short_key in compact:
+            short_key = f"{short_key}…{i}"
+        short_to_full[short_key] = k
+        compact[short_key] = v[:400]
+
     user_message = json.dumps(compact, ensure_ascii=False, indent=2)
 
     print(f"Calling Groq ({GROQ_MODEL}) for ticker + bullet extraction...")
@@ -242,7 +254,7 @@ def extract_section_data(sections):
             {"role": "user",   "content": user_message},
         ],
         temperature=0.1,
-        max_tokens=1200,
+        max_tokens=4000,
     )
 
     raw = response.choices[0].message.content.strip()
@@ -258,14 +270,14 @@ def extract_section_data(sections):
     except json.JSONDecodeError as e:
         sys.exit(f"JSON parse error from Groq response: {e}\nRaw:\n{raw}")
 
-    # Normalise: ensure every entry has tickers and bullets fields
+    # Map short keys back to full section names and normalise fields
     result = {}
-    for section, val in parsed.items():
+    for short_key, val in parsed.items():
+        full_key = short_to_full.get(short_key, short_key)
         if isinstance(val, list):
-            # Old format fallback — just tickers array
-            result[section] = {"tickers": val, "bullets": []}
+            result[full_key] = {"tickers": val, "bullets": []}
         else:
-            result[section] = {
+            result[full_key] = {
                 "tickers": val.get("tickers", []),
                 "bullets": val.get("bullets", []),
             }
