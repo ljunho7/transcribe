@@ -27,6 +27,10 @@ AMBER      = (255, 167, 38)
 LEFT_W     = int(W * 0.6)   # 1152 — chart panel
 RIGHT_W    = W - LEFT_W     # 768  — bullets panel
 
+FPS       = 25
+KB_ZOOM   = 0.05     # Ken Burns: 5% total zoom over clip duration
+FADE_DUR  = 0.5      # seconds for fade in/out between clips
+
 FONTS = "/usr/share/fonts/opentype/noto"
 KO_BOLD = f"{FONTS}/NotoSansCJK-Bold.ttc"
 KO_REG  = f"{FONTS}/NotoSansCJK-Regular.ttc"
@@ -227,9 +231,8 @@ def make_news_chart_frame(chart_path, bullets_panel):
 
 def images_to_clip(image_paths, audio_path, clip_path):
     """
-    FFmpeg: cycle through multiple images for the duration of the audio.
-    Each image gets an equal share of the total duration.
-    Falls back to single-image path if only one image.
+    FFmpeg: cycle through multiple images with Ken Burns zoom and
+    crossfade transitions between them. Overall fade in/out applied.
     """
     if len(image_paths) == 1:
         return image_to_clip(image_paths[0], audio_path, clip_path)
@@ -237,21 +240,47 @@ def images_to_clip(image_paths, audio_path, clip_path):
     dur   = get_audio_duration(audio_path)
     n     = len(image_paths)
     each  = dur / n
+    frames_each = int(each * FPS)
+    zoom_rate   = KB_ZOOM / max(frames_each, 1)
 
     cmd = ["ffmpeg", "-y"]
     for img in image_paths:
-        cmd += ["-loop", "1", "-t", f"{each:.3f}", "-i", str(img)]
+        cmd += ["-i", str(img)]
     cmd += ["-i", str(audio_path)]
 
-    # Scale each input then concat
     filter_parts = []
+
+    # Ken Burns on each image (alternate zoom in / zoom out)
     for i in range(n):
+        if i % 2 == 0:
+            zoom_expr = f"z='min({1+KB_ZOOM},pzoom+{zoom_rate:.8f})'"
+        else:
+            zoom_expr = f"z='max(1.0,{1+KB_ZOOM}-{zoom_rate:.8f}*on)'"
         filter_parts.append(
-            f"[{i}:v]scale={W}:{H}:force_original_aspect_ratio=decrease,"
-            f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2[v{i}]"
+            f"[{i}:v]scale=2048:1152,setsar=1,"
+            f"zoompan={zoom_expr}"
+            f":x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+            f":d={frames_each}:s={W}x{H}:fps={FPS}[kb{i}]"
         )
-    concat_in = "".join(f"[v{i}]" for i in range(n))
-    filter_parts.append(f"{concat_in}concat=n={n}:v=1:a=0[vout]")
+
+    # Chain crossfade transitions between segments
+    prev = "kb0"
+    for i in range(1, n):
+        offset = (i) * (each - FADE_DUR)
+        out_label = f"xf{i}" if i < n - 1 else "vraw"
+        filter_parts.append(
+            f"[{prev}][kb{i}]xfade=transition=fade:duration={FADE_DUR}"
+            f":offset={offset:.3f}[{out_label}]"
+        )
+        prev = out_label
+
+    # Overall fade in/out
+    total_dur = n * each - (n - 1) * FADE_DUR
+    filter_parts.append(
+        f"[vraw]fade=t=in:st=0:d={FADE_DUR},"
+        f"fade=t=out:st={max(0, total_dur-FADE_DUR):.3f}:d={FADE_DUR}[vout]"
+    )
+
     filter_complex = ";".join(filter_parts)
 
     cmd += [
@@ -261,6 +290,7 @@ def images_to_clip(image_paths, audio_path, clip_path):
         "-c:v", "libx264",
         "-c:a", "aac", "-b:a", "128k",
         "-pix_fmt", "yuv420p",
+        "-shortest",
         str(clip_path),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -271,19 +301,30 @@ def images_to_clip(image_paths, audio_path, clip_path):
 
 
 def image_to_clip(image_path, audio_path, clip_path):
-    """FFmpeg: loop image for the duration of the audio."""
+    """FFmpeg: single image → video with Ken Burns zoom + fade in/out."""
+    dur = get_audio_duration(audio_path)
+    total_frames = int(dur * FPS)
+    zoom_rate = KB_ZOOM / max(total_frames, 1)
+
+    vf = (
+        f"scale=2048:1152,setsar=1,"
+        f"zoompan=z='min({1+KB_ZOOM},pzoom+{zoom_rate:.8f})'"
+        f":x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+        f":d={total_frames}:s={W}x{H}:fps={FPS},"
+        f"fade=t=in:st=0:d={FADE_DUR},"
+        f"fade=t=out:st={max(0, dur-FADE_DUR):.3f}:d={FADE_DUR}"
+    )
+
     cmd = [
         "ffmpeg", "-y",
-        "-loop", "1",
         "-i", str(image_path),
         "-i", str(audio_path),
+        "-vf", vf,
+        "-map", "0:v", "-map", "1:a",
         "-c:v", "libx264",
-        "-tune", "stillimage",
-        "-c:a", "aac",
-        "-b:a", "128k",
+        "-c:a", "aac", "-b:a", "128k",
         "-pix_fmt", "yuv420p",
-        "-shortest",
-        "-vf", f"scale={W}:{H}",
+        "-t", f"{dur:.3f}",
         str(clip_path),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
