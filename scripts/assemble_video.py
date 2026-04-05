@@ -202,13 +202,25 @@ def make_bullets_panel(headline, bullets):
 def make_news_chart_frame(chart_path, bullets_panel):
     """
     Composite frame: chart resized to LEFT_W x H on left,
-    bullets panel on right.
+    bullets panel on right. If chart_path is None, uses dark left panel.
     """
     frame = Image.new("RGB", (W, H), DARK)
 
-    chart = Image.open(str(chart_path)).convert("RGB")
-    chart = chart.resize((LEFT_W, H), Image.LANCZOS)
-    frame.paste(chart, (0, 0))
+    if chart_path is not None:
+        chart = Image.open(str(chart_path)).convert("RGB")
+        chart = chart.resize((LEFT_W, H), Image.LANCZOS)
+        frame.paste(chart, (0, 0))
+    else:
+        # Dark gradient left panel (no chart available)
+        left = Image.new("RGB", (LEFT_W, H), DARK)
+        draw = ImageDraw.Draw(left)
+        for y in range(H):
+            t = y / H
+            draw.line([(0, y), (LEFT_W, y)],
+                      fill=(int(8+6*t), int(12+8*t), int(22+16*t)))
+        draw.rectangle([(0, 0), (6, H)], fill=GREEN)
+        frame.paste(left, (0, 0))
+
     frame.paste(bullets_panel, (LEFT_W, 0))
     return frame
 
@@ -347,9 +359,17 @@ def assemble():
                     frame.save(str(fp), "JPEG", quality=92)
                     frame_paths.append(fp)
                 ok = images_to_clip(frame_paths, audio, clip_path)
+            elif bullets:
+                # ── No charts but has bullets: dark left + bullets right ──
+                print(f"    📝 No charts, {len(bullets)} bullet(s) — using bullets layout", flush=True)
+                bullets_panel = make_bullets_panel(headline, bullets)
+                frame = make_news_chart_frame(None, bullets_panel)
+                frame_path = CLIPS_DIR / f"frame_{i+1:03d}.jpg"
+                frame.save(str(frame_path), "JPEG", quality=92)
+                ok = image_to_clip(frame_path, audio, clip_path)
             else:
                 # ── Fallback: original story card ─────────────────────────
-                print(f"    ⚠️  No charts — using story card fallback", flush=True)
+                print(f"    ⚠️  No charts or bullets — using story card fallback", flush=True)
                 frame_path = CLIPS_DIR / f"frame_{i+1:03d}.jpg"
                 frame = make_story_frame(headline, story_idx, total_stories, right_bg)
                 frame.save(str(frame_path), "JPEG", quality=92)
