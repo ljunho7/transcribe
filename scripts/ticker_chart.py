@@ -308,9 +308,11 @@ def extract_section_data(sections):
 # ── 3. Chart generation ───────────────────────────────────────────────────────
 
 def _safe_filename(section_label, identifier):
-    safe_section = re.sub(r'[^\w]', '_', section_label)[:20]
-    safe_ident   = re.sub(r'[^\w]', '_', identifier)
-    return os.path.join(OUTPUT_DIR, f"{safe_section}_{safe_ident}.png")
+    # Use section type (e.g. "뉴스") + ticker only
+    section_type = section_label.split(":")[0].split("：")[0].strip()
+    safe_type  = re.sub(r'[^\w]', '_', section_type)
+    safe_ident = re.sub(r'[^\w]', '_', identifier)
+    return os.path.join(OUTPUT_DIR, f"{safe_type}__{safe_ident}.png")
 
 
 def prefetch_price_data(tickers):
