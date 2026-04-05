@@ -42,21 +42,27 @@
     "priority": 7
   },
   {
+    "name": "Motley Fool Money - Weekend",
+    "rss": "https://feeds.feedburner.com/MotleyFoolMoney",
+    "max_age_hours": 48,
+    "priority": 8
+  },
+  {
     "name": "Goldman Sachs The Markets",
     "rss": "https://feeds.megaphone.fm/GLD9322922848",
     "max_age_hours": 24,
-    "priority": 8
+    "priority": 9
   },
   {
     "name": "Goldman Sachs Exchanges",
     "rss": "https://feeds.megaphone.fm/GLD9218176758",
     "max_age_hours": 24,
-    "priority": 9
+    "priority": 10
   },
   {
     "name": "The Economist - Money Talks",
     "rss": "https://rss.acast.com/theeconomistmoneytalks",
     "max_age_hours": 24,
-    "priority": 10
+    "priority": 11
   }
 ]
