@@ -316,54 +316,51 @@ def _safe_filename(section_label, identifier):
 
 
 def prefetch_price_data(tickers):
-    """Batch-download price history + names for all yfinance tickers in one call.
-    Retries with exponential backoff on rate-limit errors.
+    """Download price history + names one ticker at a time with delays.
+    Avoids Yahoo rate limits that batch yf.download() triggers.
     Returns {ticker: {"close": Series, "name": str}}."""
     if not tickers:
         return {}
 
     import time
+    print(f"\n📦  Downloading {len(tickers)} tickers individually ...", flush=True)
 
-    # ── Batch download with retry ────────────────────────────────────────
-    data = None
-    for attempt in range(4):  # up to 4 attempts: 0s, 15s, 30s, 60s
-        if attempt > 0:
-            wait = 15 * (2 ** (attempt - 1))
-            print(f"    ⏳ Rate limited — waiting {wait}s before retry {attempt+1}/4 ...",
-                  flush=True)
-            time.sleep(wait)
-        print(f"\n📦  Batch-downloading {len(tickers)} tickers (attempt {attempt+1}) ...",
-              flush=True)
-        data = yf.download(tickers, period=PRICE_PERIOD, auto_adjust=True,
-                           progress=False, group_by="ticker")
-        if not data.empty:
-            break
-    else:
-        print("    ⚠  All download attempts failed", flush=True)
-        return {}
-
-    # ── Parse results + fetch names ──────────────────────────────────────
     cache = {}
-    for ticker in tickers:
-        try:
-            if len(tickers) == 1:
-                closes = data["Close"].dropna().squeeze()
-            else:
-                closes = data[ticker]["Close"].dropna().squeeze()
-            if closes.empty or len(closes) < 3:
-                print(f"    ⚠  No price data for {ticker}", flush=True)
-                continue
-            # Fetch name with a small delay to avoid rate-limiting
+    for i, ticker in enumerate(tickers):
+        if i > 0:
+            time.sleep(1.5)  # 1.5s between each ticker
+
+        for attempt in range(3):
             try:
-                time.sleep(0.5)
-                info = yf.Ticker(ticker).info
-                name = info.get("shortName") or info.get("longName") or ""
-            except Exception:
-                name = ""
-            cache[ticker] = {"close": closes, "name": name}
-            print(f"    ✓  {ticker} ({name or '?'}): {len(closes)} rows", flush=True)
-        except Exception as e:
-            print(f"    ⚠  {ticker}: {e}", flush=True)
+                if attempt > 0:
+                    wait = 10 * attempt
+                    print(f"    ⏳ Retry {attempt+1}/3 for {ticker} in {wait}s ...", flush=True)
+                    time.sleep(wait)
+
+                t = yf.Ticker(ticker)
+                hist = t.history(period=PRICE_PERIOD)
+
+                if hist.empty or len(hist) < 3:
+                    print(f"    ⚠  No price data for {ticker}", flush=True)
+                    break
+
+                closes = hist["Close"].squeeze()
+                try:
+                    name = (t.info.get("shortName") or t.info.get("longName") or "")
+                except Exception:
+                    name = ""
+
+                cache[ticker] = {"close": closes, "name": name}
+                print(f"    ✓  {ticker} ({name or '?'}): {len(closes)} rows", flush=True)
+                break
+
+            except Exception as exc:
+                if "Too Many Requests" in str(exc) and attempt < 2:
+                    continue
+                print(f"    ✗  {ticker}: {exc}", flush=True)
+                break
+
+    print(f"    📊 Fetched {len(cache)}/{len(tickers)} tickers", flush=True)
     return cache
 
 
