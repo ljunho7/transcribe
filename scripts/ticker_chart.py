@@ -308,9 +308,9 @@ def extract_section_data(sections):
 # ── 3. Chart generation ───────────────────────────────────────────────────────
 
 def _safe_filename(section_label, identifier):
-    safe = re.sub(r'[^\w]', '_', f"{section_label}_{identifier}")
-    safe = safe[:20]  # keep filenames short
-    return os.path.join(OUTPUT_DIR, f"{safe}.png")
+    safe_section = re.sub(r'[^\w]', '_', section_label)[:20]
+    safe_ident   = re.sub(r'[^\w]', '_', identifier)
+    return os.path.join(OUTPUT_DIR, f"{safe_section}_{safe_ident}.png")
 
 
 def prefetch_price_data(tickers):
