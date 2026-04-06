@@ -141,6 +141,134 @@ FRED_LABELS = {
     "DEXUSEU":    "USD/EUR Exchange Rate",
 }
 
+# ── Keyword-to-ticker mapping ────────────────────────────────────────────────
+# Maps Korean financial keywords to their most relevant ticker.
+# Used as a pre-pass hint before Groq and as fallback for macro stories.
+KEYWORD_TICKERS = {
+    # Macro / economic indicators
+    "인플레이션": "FRED:CPIAUCSL",  "물가": "FRED:CPIAUCSL",
+    "소비자물가": "FRED:CPIAUCSL",  "CPI": "FRED:CPIAUCSL",
+    "고용": "FRED:PAYEMS",          "실업": "FRED:UNRATE",
+    "실업률": "FRED:UNRATE",        "비농업": "FRED:PAYEMS",
+    "금리": "FRED:FEDFUNDS",        "기준금리": "FRED:FEDFUNDS",
+    "연준": "FRED:FEDFUNDS",        "Fed": "FRED:FEDFUNDS",
+    "국채": "FRED:DGS10",           "10년물": "FRED:DGS10",
+    "소매": "FRED:RSXFS",           "소비자심리": "FRED:UMCSENT",
+    "GDP": "FRED:GDP",              "주택착공": "FRED:HOUST",
+    "실업수당": "FRED:ICSA",        "PCE": "FRED:PCEPILFE",
+    # Commodities
+    "유가": "CL=F",    "원유": "CL=F",     "브렌트": "BZ=F",
+    "WTI": "CL=F",     "석유": "CL=F",     "휘발유": "CL=F",
+    # Indices
+    "S&P": "^GSPC",    "나스닥": "^IXIC",  "다우": "^DJI",
+}
+
+
+def classify_story(title, body):
+    """Classify a news story to determine ticker selection strategy.
+    Returns: 'macro', 'company', 'geopolitical', 'market', or 'other'.
+    Uses title for primary classification; body only for secondary clues."""
+    t_low = title.lower()
+    b_low = body.lower()
+    full  = t_low + " " + b_low
+
+    # Macro — check title + body for economic indicators
+    if any(w in full for w in ["인플레이션", "cpi", "고용", "실업", "금리",
+                                "gdp", "소매", "pce", "비농업", "소비자물가",
+                                "이민 정책", "경제적 영향", "임금", "중산층"]):
+        return "macro"
+    # Geopolitical — primarily from title to avoid false matches from body cross-refs
+    if any(w in t_low for w in ["전쟁", "분쟁", "유가", "원유", "관세",
+                                 "제재", "이란", "러시아", "우크라이나", "중동",
+                                 "호르무즈", "opec", "석유", "터미널"]):
+        return "geopolitical"
+    # Company — requires explicit price movement language
+    if any(w in full for w in ["주가", "급등", "급락", "상승한", "하락한",
+                                "ipo", "인수", "m&a", "실적", "매출"]):
+        return "company"
+    # Market overview
+    if any(w in full for w in ["증시", "지수", "선물", "시장 동향", "변동성"]):
+        return "market"
+    return "other"
+
+
+def keyword_scan(text):
+    """Scan text for known keywords and return matching tickers (deduplicated)."""
+    found = []
+    for keyword, ticker in KEYWORD_TICKERS.items():
+        if keyword in text and ticker not in found:
+            found.append(ticker)
+    return found
+
+
+def postprocess_tickers(section_data, sections):
+    """Clean up Groq output: dedup, filter non-financial, remove fixed-section overlaps."""
+    # Collect tickers from fixed sections
+    FIXED = {"시장개요", "주요등락", "섹터분석", "국가별"}
+    fixed_tickers = set()
+    for sec in FIXED:
+        for t in section_data.get(sec, {}).get("tickers", []):
+            fixed_tickers.add(t)
+
+    seen_tickers = set()
+
+    for section, entry in section_data.items():
+        if section in FIXED:
+            continue
+
+        tickers = entry.get("tickers", [])
+        if not tickers:
+            continue
+
+        # Extract title from section key
+        title = section.replace("뉴스: ", "")
+        body = sections.get(section, "")
+        story_type = classify_story(title, body)
+
+        # 1. Non-financial stories → clear tickers
+        if story_type == "other":
+            print(f"    🚫 [{story_type}] {title[:30]} — clearing tickers", flush=True)
+            entry["tickers"] = []
+            continue
+
+        # 2. Macro stories → prefer FRED, add keyword suggestions
+        if story_type == "macro":
+            fred_tickers = [t for t in tickers if t.startswith("FRED:")]
+            keyword_hits = keyword_scan(title + " " + body)
+            keyword_fred = [t for t in keyword_hits if t.startswith("FRED:")]
+            # Merge: Groq FRED + keyword FRED (deduplicated)
+            merged = list(dict.fromkeys(fred_tickers + keyword_fred))
+            tickers = merged if merged else tickers  # fallback to Groq if no FRED found
+
+        # 3. Geopolitical → add commodity keyword suggestions
+        if story_type == "geopolitical":
+            keyword_hits = keyword_scan(title + " " + body)
+            commodity_hits = [t for t in keyword_hits
+                              if not t.startswith("FRED:") and not t.startswith("^")]
+            for t in commodity_hits:
+                if t not in tickers:
+                    tickers.append(t)
+
+        # 4. Remove tickers already in fixed sections
+        tickers = [t for t in tickers if t not in fixed_tickers]
+
+        # 5. Deduplicate across news sections (first occurrence wins)
+        unique = []
+        for t in tickers:
+            if t not in seen_tickers:
+                unique.append(t)
+                seen_tickers.add(t)
+        tickers = unique
+
+        if tickers != entry["tickers"]:
+            print(f"    🔧 [{story_type}] {title[:30]}: {entry['tickers']} → {tickers}",
+                  flush=True)
+
+        entry["tickers"] = tickers
+
+    return section_data
+
+
 # ── 1. Section parser ─────────────────────────────────────────────────────────
 
 def parse_sections(text):
@@ -217,6 +345,12 @@ Ticker rules:
     mention that many distinct instruments.
   - Use [] if no clearly relevant identifier exists
   - Only include identifiers you are highly confident are correct
+  - CRITICAL: Only include a STOCK ticker if the story explicitly mentions
+    its price movement (e.g., "17% 급등", "14% 하락", "$412 기록").
+    Do NOT include tickers for companies that are merely mentioned by name
+    without specific price/performance data.
+  - For non-financial stories (science, religion, environment, sports),
+    return empty tickers []
 
 ──────────────────────────────────────────
 BULLETS — Korean bullet points for 뉴스: sections only:
@@ -309,6 +443,11 @@ def extract_section_data(sections):
                 "tickers": val.get("tickers", []),
                 "bullets": val.get("bullets", []),
             }
+
+    # Post-process: classify stories, dedup, filter non-financial, add keyword hints
+    print("\n── Post-processing tickers ──────────────")
+    result = postprocess_tickers(result, sections)
+
     return result
 
 
