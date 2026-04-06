@@ -44,7 +44,7 @@
   {
     "name": "Motley Fool Money - Weekend",
     "rss": "https://feeds.feedburner.com/MotleyFoolMoney",
-    "max_age_hours": 48,
+    "max_age_hours": 24,
     "priority": 8
   },
   {
