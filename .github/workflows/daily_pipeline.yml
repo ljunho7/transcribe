@@ -45,17 +45,21 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python -u scripts/summarize_translate.py
 
-      - name: Step 3.5 — Extract tickers and generate charts (Groq + FRED)
+      - name: Step 3.5 — Extract tickers and bullet points (Groq)
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
-          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
-        run: python -u scripts/ticker_chart.py
+        run: python -u scripts/ticker_chart.py --extract-only
 
       - name: Step 3.7 — Review script and bullet points (GPT-4o)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python -u scripts/review_script.py
+
+      - name: Step 3.8 — Generate charts from reviewed data (yfinance + FRED)
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+        run: python -u scripts/ticker_chart.py --charts-only
 
       - name: Step 4 — Generate Korean voice (gTTS)
         run: python -u scripts/generate_voice.py

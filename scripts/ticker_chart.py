@@ -714,8 +714,34 @@ def main():
                         help="Path to Korean script (default: temp/korean_script.txt)")
     parser.add_argument("--skip-groq", action="store_true",
                         help=f"Skip Groq call and load {TICKER_MAP_FILE} instead")
+
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--extract-only", action="store_true",
+                      help="Only extract tickers/bullets (no chart generation)")
+    mode.add_argument("--charts-only", action="store_true",
+                      help="Only generate charts from existing ticker_map.json")
+
     args = parser.parse_args()
 
+    # ── Charts-only mode: load ticker_map and generate charts ────────────
+    if args.charts_only:
+        if not os.path.exists(TICKER_MAP_FILE):
+            sys.exit(f"ticker_map.json not found: {TICKER_MAP_FILE}")
+        print(f"Loading section data from {TICKER_MAP_FILE}")
+        with open(TICKER_MAP_FILE, encoding="utf-8") as f:
+            section_data = json.load(f)
+        section_data = generate_charts(section_data)
+        with open(TICKER_MAP_FILE, "w", encoding="utf-8") as f:
+            json.dump(section_data, f, ensure_ascii=False, indent=2)
+        total = sum(len(e.get("charts", [])) for e in section_data.values())
+        print(f"\n── Done (charts-only) ───────────────────")
+        print(f"Total charts generated: {total}")
+        for s, entry in section_data.items():
+            for p in entry.get("charts", []):
+                print(f"  {s} → {p}")
+        return
+
+    # ── Parse script ─────────────────────────────────────────────────────
     if not os.path.exists(args.script):
         sys.exit(f"Script file not found: {args.script}")
     with open(args.script, encoding="utf-8") as f:
@@ -734,6 +760,7 @@ def main():
             section_data = json.load(f)
     else:
         section_data = extract_section_data(sections)
+        os.makedirs("temp", exist_ok=True)
         with open(TICKER_MAP_FILE, "w", encoding="utf-8") as f:
             json.dump(section_data, f, ensure_ascii=False, indent=2)
         print(f"Section data saved → {TICKER_MAP_FILE}")
@@ -745,10 +772,15 @@ def main():
         if entry.get("bullets"):
             print(f"    bullets: {entry.get('bullets', [])}")
 
+    # ── Extract-only mode: stop here ─────────────────────────────────────
+    if args.extract_only:
+        print(f"\n── Done (extract-only) ──────────────────")
+        return
+
     # ── Generate charts ───────────────────────────────────────────────────
     section_data = generate_charts(section_data)
 
-    # ── Save final section_data.json for assemble_video.py ───────────────
+    # ── Save final section_data with chart paths ─────────────────────────
     os.makedirs("temp", exist_ok=True)
     with open(TICKER_MAP_FILE, "w", encoding="utf-8") as f:
         json.dump(section_data, f, ensure_ascii=False, indent=2)
