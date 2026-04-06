@@ -2,8 +2,9 @@
 """
 Step 3.7: Review Korean script and bullet points before voice generation.
 
-Reads temp/korean_script.txt and temp/ticker_map.json, sends them to
-Gemini for quality review, and overwrites with corrected versions.
+Uses GitHub Models (GPT-4o) — free, no extra API key needed on GitHub Actions.
+Reads temp/korean_script.txt and temp/ticker_map.json, sends them to GPT-4o
+for quality review, and overwrites with corrected versions.
 
 Non-blocking: if review fails, the original files are kept intact.
 
@@ -13,68 +14,64 @@ Usage:
 
 import json
 import os
+import re
 import sys
 import time
 
 try:
-    from google import genai
-    from google.genai import types
+    from openai import OpenAI
 except ImportError:
-    sys.exit("Missing: pip install google-genai")
+    sys.exit("Missing: pip install openai")
 
 SCRIPT_FILE     = "temp/korean_script.txt"
 TICKER_MAP_FILE = "temp/ticker_map.json"
 
-MODELS = [
-    "gemini-2.5-flash",
-    "gemini-3.1-flash-lite-preview",
-    "gemini-2.5-flash-lite",
-]
-MAX_RETRIES = 3
-RETRY_DELAY = 10
+GH_MODELS_URL = "https://models.inference.ai.azure.com"
+MODEL         = "gpt-4o"
+MAX_RETRIES   = 3
+RETRY_DELAY   = 10
 
 
-def call_gemini(client, prompt, min_chars=100, max_tokens=65536):
-    """Try each model until one succeeds."""
+def call_gpt(client, system_prompt, user_content, min_chars=100):
+    """Call GPT-4o via GitHub Models with retries."""
     last_error = None
-    for model in MODELS:
-        for attempt in range(1, MAX_RETRIES + 1):
-            try:
-                print(f"  [Gemini] {model} attempt {attempt}/{MAX_RETRIES} "
-                      f"({len(prompt):,} chars)...", flush=True)
-                cfg = types.GenerateContentConfig(
-                    max_output_tokens=max_tokens,
-                    temperature=0.3,
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
-                )
-                response = client.models.generate_content(
-                    model=model, contents=prompt, config=cfg,
-                )
-                text = response.text.strip()
-                if len(text) < min_chars:
-                    raise ValueError(f"Too short: {len(text)} < {min_chars}")
-                print(f"  ✅ {model}: {len(text):,} chars", flush=True)
-                return text
-            except Exception as e:
-                last_error = e
-                err_str = str(e)
-                print(f"  Failed: {err_str[:200]}", flush=True)
-                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    print(f"  ⚠️  Rate limited — skipping to next model", flush=True)
-                    break
-                if attempt < MAX_RETRIES:
-                    time.sleep(RETRY_DELAY)
-        print(f"  All retries failed for {model}, trying next...", flush=True)
-    raise RuntimeError(f"All models failed. Last: {last_error}")
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            print(f"  [GPT-4o] attempt {attempt}/{MAX_RETRIES} "
+                  f"({len(user_content):,} chars)...", flush=True)
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_content},
+                ],
+                temperature=0.3,
+                max_tokens=4096,
+            )
+            text = response.choices[0].message.content.strip()
+            if len(text) < min_chars:
+                raise ValueError(f"Too short: {len(text)} < {min_chars}")
+            print(f"  ✅ GPT-4o: {len(text):,} chars", flush=True)
+            return text
+        except Exception as e:
+            last_error = e
+            err_str = str(e)
+            print(f"  Failed: {err_str[:200]}", flush=True)
+            if "429" in err_str or "rate" in err_str.lower():
+                print(f"  ⚠️  Rate limited — waiting {RETRY_DELAY * attempt}s", flush=True)
+                time.sleep(RETRY_DELAY * attempt)
+            elif attempt < MAX_RETRIES:
+                time.sleep(RETRY_DELAY)
+    raise RuntimeError(f"All attempts failed. Last: {last_error}")
 
 
 # ── Script review prompt ─────────────────────────────────────────────────────
 
-SCRIPT_REVIEW_PROMPT = """\
+SCRIPT_REVIEW_SYSTEM = """\
 You are a senior Korean broadcast news editor reviewing a script before it goes
 to the voice recording booth. This script will be read aloud by a news anchor.
 
-Review the script below and return a CORRECTED version. Fix these issues:
+Review the script and return a CORRECTED version. Fix these issues:
 
 1. REPETITION
    - Remove sentences/facts that appear more than once across different stories
@@ -107,17 +104,13 @@ Review the script below and return a CORRECTED version. Fix these issues:
      separated from other stories by a blank line
    - Do NOT merge stories that cover genuinely different topics
 
-Return ONLY the corrected script. No commentary, no markdown, no explanation.
-
-SCRIPT TO REVIEW:
-"""
+Return ONLY the corrected script. No commentary, no markdown, no explanation."""
 
 
-BULLETS_REVIEW_PROMPT = """\
+BULLETS_REVIEW_SYSTEM = """\
 You are reviewing bullet points for a Korean financial news broadcast video overlay.
 Each bullet appears on-screen alongside a chart during the news story.
 
-Below is a JSON object mapping news sections to their bullet points.
 Review and fix each section's bullets:
 
 1. MEANINGFUL CONTENT
@@ -141,10 +134,7 @@ Review and fix each section's bullets:
    - Keep the same number of bullets per section (do not add or remove)
 
 Return ONLY the corrected JSON object (same structure, same keys, updated bullets).
-No markdown fences, no explanation.
-
-BULLET DATA:
-"""
+No markdown fences, no explanation."""
 
 
 def review_script(client):
@@ -156,8 +146,8 @@ def review_script(client):
 
     print(f"  Original: {len(original):,} chars", flush=True)
 
-    prompt = SCRIPT_REVIEW_PROMPT + original
-    corrected = call_gemini(client, prompt, min_chars=int(len(original) * 0.7))
+    corrected = call_gpt(client, SCRIPT_REVIEW_SYSTEM, original,
+                         min_chars=int(len(original) * 0.7))
 
     # Validate that section tags are preserved
     required_tags = ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
@@ -196,11 +186,10 @@ def review_bullets(client):
 
     print(f"  Reviewing bullets for {len(news_bullets)} sections", flush=True)
 
-    prompt = BULLETS_REVIEW_PROMPT + json.dumps(news_bullets, ensure_ascii=False, indent=2)
-    raw = call_gemini(client, prompt, min_chars=10)
+    user_content = json.dumps(news_bullets, ensure_ascii=False, indent=2)
+    raw = call_gpt(client, BULLETS_REVIEW_SYSTEM, user_content, min_chars=10)
 
     # Parse corrected bullets
-    import re
     raw = re.sub(r'^```(?:json)?\s*', '', raw)
     raw = re.sub(r'\s*```$', '', raw)
 
@@ -231,16 +220,16 @@ def review_bullets(client):
 
 
 def main():
-    api_key = os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
-        sys.exit("GEMINI_API_KEY not set")
+    # GitHub Actions provides GITHUB_TOKEN automatically.
+    # For local testing, use a personal access token.
+    token = os.environ.get("GITHUB_TOKEN", "")
+    if not token:
+        sys.exit("GITHUB_TOKEN not set — required for GitHub Models API")
 
     if not os.path.exists(SCRIPT_FILE):
         sys.exit(f"Script not found: {SCRIPT_FILE}")
-    if not os.path.exists(TICKER_MAP_FILE):
-        print(f"⚠️  {TICKER_MAP_FILE} not found — skipping bullet review", flush=True)
 
-    client = genai.Client(api_key=api_key)
+    client = OpenAI(base_url=GH_MODELS_URL, api_key=token)
 
     # Review script (non-blocking on failure)
     try:
@@ -254,6 +243,8 @@ def main():
             review_bullets(client)
         except Exception as e:
             print(f"  ⚠️  Bullet review failed — keeping original: {e}", flush=True)
+    else:
+        print(f"⚠️  {TICKER_MAP_FILE} not found — skipping bullet review", flush=True)
 
     print("\n✅ Review complete", flush=True)
 

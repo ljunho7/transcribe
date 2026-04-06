@@ -11,4 +11,5 @@ yfinance==0.2.54
 pillow
 pandas
 fredapi
-matplotlib 
+matplotlib
+openai
