@@ -2,43 +2,43 @@
   {
     "name": "WSJ What's News",
     "rss": "https://video-api.wsj.com/podcast/rss/wsj/whats-news",
-    "max_age_hours": 24,
+    "max_age_hours": 48,
     "priority": 1
   },
   {
     "name": "Financial Times News Briefing",
     "rss": "https://rss.acast.com/ftnewsbriefing",
-    "max_age_hours": 24,
+    "max_age_hours": 48,
     "priority": 2
   },
   {
     "name": "Bloomberg Daybreak US",
     "rss": "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/d15648c4-cee0-4e99-a5ca-af80014d921d/65ce2954-d8a8-4c66-9f42-af80014d923e/podcast.rss",
-    "max_age_hours": 24,
+    "max_age_hours": 48,
     "priority": 3
   },
   {
     "name": "Morgan Stanley Thoughts on the Market",
     "rss": "https://rss.art19.com/thoughts-on-the-market",
-    "max_age_hours": 24,
+    "max_age_hours": 48,
     "priority": 4
   },
   {
     "name": "The Economist - The Intelligence",
     "rss": "https://rss.acast.com/theintelligencepodcast",
-    "max_age_hours": 24,
+    "max_age_hours": 48,
     "priority": 5
   },
   {
     "name": "Marketplace",
     "rss": "https://feeds.publicradio.org/public_feeds/marketplace",
-    "max_age_hours": 24,
+    "max_age_hours": 48,
     "priority": 6
   },
   {
     "name": "JP Morgan Making Sense",
     "rss": "https://feed.podbean.com/marketmatters/feed.xml",
-    "max_age_hours": 24,
+    "max_age_hours": 48,
     "priority": 7
   },
   {
@@ -50,19 +50,19 @@
   {
     "name": "Goldman Sachs The Markets",
     "rss": "https://feeds.megaphone.fm/GLD9322922848",
-    "max_age_hours": 24,
+    "max_age_hours": 48,
     "priority": 9
   },
   {
     "name": "Goldman Sachs Exchanges",
     "rss": "https://feeds.megaphone.fm/GLD9218176758",
-    "max_age_hours": 24,
+    "max_age_hours": 48,
     "priority": 10
   },
   {
     "name": "The Economist - Money Talks",
     "rss": "https://rss.acast.com/theeconomistmoneytalks",
-    "max_age_hours": 24,
+    "max_age_hours": 48,
     "priority": 11
   }
 ]
