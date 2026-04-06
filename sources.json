@@ -64,5 +64,11 @@
     "rss": "https://rss.acast.com/theeconomistmoneytalks",
     "max_age_hours": 24,
     "priority": 11
+  },
+  {
+    "name": "Barclays Brief",
+    "rss": "https://barclays-brief.captivate.fm/rssfeed",
+    "max_age_hours": 24,
+    "priority": 12
   }
 ]
