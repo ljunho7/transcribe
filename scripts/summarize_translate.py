@@ -116,7 +116,12 @@ def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=4096, t
                 return text
             except Exception as e:
                 last_error = e
-                print(f"  Failed: {e}", flush=True)
+                err_str = str(e)
+                print(f"  Failed: {err_str[:200]}", flush=True)
+                # On quota/rate-limit error, skip to next model immediately
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    print(f"  ⚠️  Rate limited on {model} — skipping to next model", flush=True)
+                    break
                 if attempt < MAX_RETRIES:
                     time.sleep(RETRY_DELAY)
         print(f"  All retries failed for {model}, trying next...", flush=True)
@@ -229,7 +234,7 @@ TRANSCRIPT:
                 client, summary_prompt,
                 required_tags=[],
                 min_chars=translation_min,
-                max_tokens=16384
+                max_tokens=32768
             )
             summaries.append({"source": txt_file.stem, "summary": summary})
             print(f"  ✅ Summary: {len(summary):,} chars", flush=True)
