@@ -610,12 +610,11 @@ def make_price_chart(ticker, output_path):
         color = "#00e676" if pct >= 0 else "#ff5252"
         title_line = f"{full_name}  ({ticker})" if full_name else ticker
 
-        fig, ax = plt.subplots(figsize=(16, 9))
+        fig, ax = plt.subplots(figsize=(12, 9))
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#161b22")
 
         ax.plot(close.index, close.values, color=color, linewidth=3, zorder=3)
-        # Subtle fill — just a hint of color, not a dark blob
         ax.fill_between(close.index, close.values, close.min(),
                         alpha=0.06, color=color)
 
@@ -629,15 +628,15 @@ def make_price_chart(ticker, output_path):
             f"{close.iloc[-1]:,.2f}",
             xy=(close.index[-1], close.iloc[-1]),
             xytext=(8, 0), textcoords="offset points",
-            color=color, fontsize=15, fontweight="bold", va="center"
+            color=color, fontsize=14, fontweight="bold", va="center"
         )
 
-        ax.set_title(f"{title_line}   {pct:+.2f}%  (1 month)",
-                     color="white", fontsize=24, pad=18, fontweight="bold")
-        ax.tick_params(colors="#bbbbbb", labelsize=15)
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
+        ax.set_title(f"{title_line}   {pct:+.2f}%  (1개월)",
+                     color="white", fontsize=20, pad=14, fontweight="bold")
+        ax.tick_params(colors="#bbbbbb", labelsize=13)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
         ax.xaxis.set_major_locator(mdates.WeekdayLocator(byweekday=0))
-        plt.xticks(rotation=30, ha="right")
+        plt.xticks(rotation=0, ha="center")
         ax.yaxis.set_major_formatter(mticker.FuncFormatter(
             lambda x, _: f"{x:,.0f}" if abs(x) >= 100 else f"{x:.2f}"
         ))
@@ -645,8 +644,8 @@ def make_price_chart(ticker, output_path):
             spine.set_edgecolor("#30363d")
         ax.grid(axis="y", color="#30363d", linestyle="--", linewidth=0.6, zorder=0)
 
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=120, bbox_inches="tight",
+        fig.subplots_adjust(left=0.12, right=0.92, top=0.90, bottom=0.10)
+        plt.savefig(output_path, dpi=100, bbox_inches="tight",
                     facecolor=fig.get_facecolor())
         plt.close()
         return True
@@ -724,7 +723,7 @@ def make_macro_chart(fred_id, output_path):
 
         color = "#ffa726"   # amber
 
-        fig, ax = plt.subplots(figsize=(16, 9))
+        fig, ax = plt.subplots(figsize=(12, 9))
         fig.patch.set_facecolor("#0d1117")
         ax.set_facecolor("#161b22")
 
@@ -757,13 +756,13 @@ def make_macro_chart(fred_id, output_path):
                    color="#ffcc02", s=80, zorder=5)
 
         ax.set_title(
-            f"{change_label}\nLatest: {latest:.2f}   ({sign}{delta:.2f} vs prior)",
-            color="white", fontsize=18, pad=16, fontweight="bold", linespacing=1.6
+            f"{change_label}\n최근: {latest:.2f}   ({sign}{delta:.2f} 전기 대비)",
+            color="white", fontsize=16, pad=14, fontweight="bold", linespacing=1.6
         )
-        ax.tick_params(colors="#bbbbbb", labelsize=15)
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+        ax.tick_params(colors="#bbbbbb", labelsize=13)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%y/%m"))
         ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))
-        plt.xticks(rotation=30, ha="right")
+        plt.xticks(rotation=0, ha="center")
         for spine in ax.spines.values():
             spine.set_edgecolor("#30363d")
         ax.grid(axis="y", color="#30363d", linestyle="--", linewidth=0.6, zorder=0)
@@ -773,8 +772,8 @@ def make_macro_chart(fred_id, output_path):
             )
         ))
 
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=120, bbox_inches="tight",
+        fig.subplots_adjust(left=0.12, right=0.92, top=0.88, bottom=0.10)
+        plt.savefig(output_path, dpi=100, bbox_inches="tight",
                     facecolor=fig.get_facecolor())
         plt.close()
         return True
