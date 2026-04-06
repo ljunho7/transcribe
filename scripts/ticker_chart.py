@@ -23,6 +23,10 @@ import os
 import re
 import sys
 
+# ── Suppress noisy deprecation warnings from yfinance internals ──────────────
+import warnings
+warnings.filterwarnings("ignore", message=".*utcnow.*deprecated.*")
+
 # ── Dependency check ─────────────────────────────────────────────────────────
 try:
     from groq import Groq
