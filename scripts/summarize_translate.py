@@ -234,7 +234,7 @@ TRANSCRIPT:
                 client, summary_prompt,
                 required_tags=[],
                 min_chars=translation_min,
-                max_tokens=32768
+                max_tokens=65536
             )
             summaries.append({"source": txt_file.stem, "summary": summary})
             print(f"  ✅ Summary: {len(summary):,} chars", flush=True)
