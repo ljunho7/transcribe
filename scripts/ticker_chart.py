@@ -469,16 +469,12 @@ def _fetch_alpha_vantage(ticker):
     if not AV_API_KEY:
         return None, None
 
-    # Alpha Vantage ticker mapping — strip yfinance suffixes
-    av_ticker = ticker.replace("=F", "").replace("=X", "")
-    if ticker.startswith("^"):
-        # Indices: Alpha Vantage doesn't support ^GSPC directly;
-        # use equivalent ETFs as proxies
-        INDEX_TO_ETF = {
-            "^GSPC": "SPY", "^IXIC": "QQQ", "^DJI": "DIA",
-            "^SOX": "SOXX", "^TNX": "TLT",
-        }
-        av_ticker = INDEX_TO_ETF.get(ticker, av_ticker.replace("^", ""))
+    # Alpha Vantage doesn't support indices (^GSPC) or futures (CL=F) —
+    # skip these rather than using proxy ETFs which have different price levels
+    if ticker.startswith("^") or ticker.endswith("=F") or ticker.endswith("=X"):
+        return None, None
+
+    av_ticker = ticker
 
     try:
         url = (f"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY"
@@ -608,7 +604,7 @@ def make_price_chart(ticker, output_path):
 
         pct   = (close.iloc[-1] / close.iloc[0] - 1) * 100
         color = "#00e676" if pct >= 0 else "#ff5252"
-        title_line = f"{full_name}  ({ticker})" if full_name else ticker
+        title_line = full_name if full_name else ticker
 
         fig, ax = plt.subplots(figsize=(12, 9))
         fig.patch.set_facecolor("#0d1117")
