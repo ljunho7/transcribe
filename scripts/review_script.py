@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Step 3.7: Review Korean script and bullet points before voice generation.
+Step 3.6: Review Korean script and bullet points before voice generation.
 
-Uses GitHub Models (GPT-4o) — free, no extra API key needed on GitHub Actions.
-Reads temp/korean_script.txt and temp/ticker_map.json, sends them to GPT-4o
-for quality review, and overwrites with corrected versions.
+- Script review: uses Gemini (65K output tokens, no truncation risk)
+- Bullet review: uses GPT-4o via GitHub Models (short output, free)
 
 Non-blocking: if review fails, the original files are kept intact.
 
@@ -24,24 +23,73 @@ try:
 except ImportError:
     sys.exit("Missing: pip install openai")
 
+try:
+    from google import genai
+    from google.genai import types
+except ImportError:
+    sys.exit("Missing: pip install google-genai")
+
 SCRIPT_FILE     = "temp/korean_script.txt"
 TICKER_MAP_FILE = "temp/ticker_map.json"
 
+# GitHub Models (GPT-4o) — for bullet review (short output)
 GH_MODELS_URL = "https://models.inference.ai.azure.com"
-MODEL         = "gpt-4o"
-MAX_RETRIES   = 3
-RETRY_DELAY   = 10
+GPT_MODEL     = "gpt-4o"
+
+# Gemini — for script review (long output)
+GEMINI_MODELS = [
+    "gemini-2.5-flash",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-2.5-flash-lite",
+]
+
+MAX_RETRIES = 3
+RETRY_DELAY = 10
 
 
-def call_gpt(client, system_prompt, user_content, min_chars=100):
-    """Call GPT-4o via GitHub Models with retries."""
+def call_gemini(gemini_client, prompt, min_chars=100):
+    """Call Gemini with model fallback chain. For long-output tasks."""
+    last_error = None
+    for model in GEMINI_MODELS:
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                print(f"  [Gemini] {model} attempt {attempt}/{MAX_RETRIES} "
+                      f"({len(prompt):,} chars)...", flush=True)
+                cfg = types.GenerateContentConfig(
+                    max_output_tokens=65536,
+                    temperature=0.3,
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
+                )
+                response = gemini_client.models.generate_content(
+                    model=model, contents=prompt, config=cfg,
+                )
+                text = response.text.strip()
+                if len(text) < min_chars:
+                    raise ValueError(f"Too short: {len(text)} < {min_chars}")
+                print(f"  ✅ {model}: {len(text):,} chars", flush=True)
+                return text
+            except Exception as e:
+                last_error = e
+                err_str = str(e)
+                print(f"  Failed: {err_str[:200]}", flush=True)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    print(f"  ⚠️  Rate limited — skipping to next model", flush=True)
+                    break
+                if attempt < MAX_RETRIES:
+                    time.sleep(RETRY_DELAY)
+        print(f"  All retries failed for {model}, trying next...", flush=True)
+    raise RuntimeError(f"All Gemini models failed. Last: {last_error}")
+
+
+def call_gpt(gpt_client, system_prompt, user_content, min_chars=100):
+    """Call GPT-4o via GitHub Models. For short-output tasks (bullets)."""
     last_error = None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             print(f"  [GPT-4o] attempt {attempt}/{MAX_RETRIES} "
                   f"({len(user_content):,} chars)...", flush=True)
-            response = client.chat.completions.create(
-                model=MODEL,
+            response = gpt_client.chat.completions.create(
+                model=GPT_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user",   "content": user_content},
@@ -63,12 +111,12 @@ def call_gpt(client, system_prompt, user_content, min_chars=100):
                 time.sleep(RETRY_DELAY * attempt)
             elif attempt < MAX_RETRIES:
                 time.sleep(RETRY_DELAY)
-    raise RuntimeError(f"All attempts failed. Last: {last_error}")
+    raise RuntimeError(f"All GPT-4o attempts failed. Last: {last_error}")
 
 
 # ── Script review prompt ─────────────────────────────────────────────────────
 
-SCRIPT_REVIEW_SYSTEM = """\
+SCRIPT_REVIEW_PROMPT = """\
 You are a senior Korean broadcast news editor reviewing a script before it goes
 to the voice recording booth. This script will be read aloud by a news anchor.
 
@@ -116,7 +164,10 @@ Review the script and return a CORRECTED version. Fix these issues:
      separated from other stories by a blank line
    - Do NOT merge stories that cover genuinely different topics
 
-Return ONLY the corrected script. No commentary, no markdown, no explanation."""
+Return ONLY the corrected script. No commentary, no markdown, no explanation.
+
+SCRIPT TO REVIEW:
+"""
 
 
 BULLETS_REVIEW_SYSTEM = """\
@@ -162,34 +213,31 @@ def show_tracked_changes(original, corrected):
         code = line[0]
         text = line[2:].rstrip('\n')
         if code == ' ':
-            # Unchanged line
             print(f"  {text}", flush=True)
         elif code == '-':
-            # Deleted (strikethrough-style)
             print(f"  [-] {text}", flush=True)
             has_changes = True
         elif code == '+':
-            # Added
             print(f"  [+] {text}", flush=True)
             has_changes = True
-        # Skip '?' hint lines from ndiff
 
     if not has_changes:
         print("  (no changes)", flush=True)
     print("────────────────────────────────────────────────────\n", flush=True)
 
 
-def review_script(client):
-    """Review and correct the Korean script."""
-    print("\n📝 Step 3.7a: Reviewing Korean script...", flush=True)
+def review_script(gemini_client):
+    """Review and correct the Korean script using Gemini (long output)."""
+    print("\n📝 Step 3.6a: Reviewing Korean script (Gemini)...", flush=True)
 
     with open(SCRIPT_FILE, "r", encoding="utf-8") as f:
         original = f.read()
 
     print(f"  Original: {len(original):,} chars", flush=True)
 
-    corrected = call_gpt(client, SCRIPT_REVIEW_SYSTEM, original,
-                         min_chars=int(len(original) * 0.4))
+    prompt = SCRIPT_REVIEW_PROMPT + original
+    corrected = call_gemini(gemini_client, prompt,
+                            min_chars=int(len(original) * 0.4))
 
     # Validate that section tags are preserved
     required_tags = ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
@@ -211,9 +259,9 @@ def review_script(client):
     return True
 
 
-def review_bullets(client):
-    """Review and correct bullet points in ticker_map.json."""
-    print("\n📝 Step 3.7b: Reviewing bullet points...", flush=True)
+def review_bullets(gpt_client):
+    """Review and correct bullet points using GPT-4o (short output)."""
+    print("\n📝 Step 3.6b: Reviewing bullet points (GPT-4o)...", flush=True)
 
     with open(TICKER_MAP_FILE, "r", encoding="utf-8") as f:
         ticker_map = json.load(f)
@@ -232,7 +280,7 @@ def review_bullets(client):
     print(f"  Reviewing bullets for {len(news_bullets)} sections", flush=True)
 
     user_content = json.dumps(news_bullets, ensure_ascii=False, indent=2)
-    raw = call_gpt(client, BULLETS_REVIEW_SYSTEM, user_content, min_chars=10)
+    raw = call_gpt(gpt_client, BULLETS_REVIEW_SYSTEM, user_content, min_chars=10)
 
     # Parse corrected bullets
     raw = re.sub(r'^```(?:json)?\s*', '', raw)
@@ -265,30 +313,39 @@ def review_bullets(client):
 
 
 def main():
-    # GitHub Actions provides GITHUB_TOKEN automatically.
-    # For local testing, use a personal access token.
-    token = os.environ.get("GITHUB_TOKEN", "")
-    if not token:
-        sys.exit("GITHUB_TOKEN not set — required for GitHub Models API")
+    # Gemini client for script review (long output)
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    if not gemini_key:
+        print("⚠️  GEMINI_API_KEY not set — skipping script review", flush=True)
+        gemini_client = None
+    else:
+        gemini_client = genai.Client(api_key=gemini_key)
+
+    # GPT-4o client for bullet review (short output)
+    gh_token = os.environ.get("GITHUB_TOKEN", "")
+    if not gh_token:
+        print("⚠️  GITHUB_TOKEN not set — skipping bullet review", flush=True)
+        gpt_client = None
+    else:
+        gpt_client = OpenAI(base_url=GH_MODELS_URL, api_key=gh_token)
 
     if not os.path.exists(SCRIPT_FILE):
         sys.exit(f"Script not found: {SCRIPT_FILE}")
 
-    client = OpenAI(base_url=GH_MODELS_URL, api_key=token)
-
-    # Review script (non-blocking on failure)
-    try:
-        review_script(client)
-    except Exception as e:
-        print(f"  ⚠️  Script review failed — keeping original: {e}", flush=True)
-
-    # Review bullets (non-blocking on failure)
-    if os.path.exists(TICKER_MAP_FILE):
+    # Review script with Gemini (non-blocking on failure)
+    if gemini_client:
         try:
-            review_bullets(client)
+            review_script(gemini_client)
+        except Exception as e:
+            print(f"  ⚠️  Script review failed — keeping original: {e}", flush=True)
+
+    # Review bullets with GPT-4o (non-blocking on failure)
+    if gpt_client and os.path.exists(TICKER_MAP_FILE):
+        try:
+            review_bullets(gpt_client)
         except Exception as e:
             print(f"  ⚠️  Bullet review failed — keeping original: {e}", flush=True)
-    else:
+    elif not os.path.exists(TICKER_MAP_FILE):
         print(f"⚠️  {TICKER_MAP_FILE} not found — skipping bullet review", flush=True)
 
     print("\n✅ Review complete", flush=True)
