@@ -303,6 +303,15 @@ TYPE 2 — FRED macro series (official economic releases):
   - FRED:CBETHUSD    → Ethereum Price (Coinbase)
   - FRED:CSUSHPINSA  → Case-Shiller Home Price Index
   - FRED:FIXHAI      → Housing Affordability Index
+  - FRED:MORTGAGE30US→ 30-Year Mortgage Rate
+  - FRED:T10Y2Y      → 10Y-2Y Treasury Spread (yield curve)
+  - FRED:BAMLH0A0HYM2→ High Yield Bond Spread
+  - FRED:M2SL        → M2 Money Supply
+  - FRED:SAHMREALTIME→ Sahm Rule Recession Indicator
+  - FRED:GFDEGDQ188S → Federal Debt to GDP
+  - FRED:JTSJOL      → Job Openings (JOLTS)
+  - FRED:CIVPART     → Labor Force Participation Rate
+  - FRED:DRCCLACBS   → Credit Card Delinquency Rate
 
   CRITICAL: Never invent FRED series IDs. Only use IDs from the list above.
   For crude oil always use FRED:DCOILWTICO, never FRED:CRUDE or any other variant.
