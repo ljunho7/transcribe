@@ -21,6 +21,45 @@ RETRY_DELAY = 10
 
 MAX_CHARS_PER_TRANSCRIPT = 20000  # truncate each podcast before translating
 
+# ── Post-translation ad filtering ────────────────────────────────────────────
+import re as _re
+
+_AD_PATTERNS = [
+    _re.compile(r'.*에서 자세히 알아보.*'),
+    _re.compile(r'.*를 방문하세요.*'),
+    _re.compile(r'.*닷컴.*에서.*시작하세요.*'),
+    _re.compile(r'.*의 지원을 받습니다.*'),
+    _re.compile(r'.*의 후원.*받습니다.*'),
+    _re.compile(r'.*에서 제공합니다.*'),
+    _re.compile(r'.*무료로 사용해 보세요.*'),
+    _re.compile(r'.*무료로 시도해.*'),
+    _re.compile(r'.*(thehartford|truestage|odoo|care\.org|vantagecore).*', _re.IGNORECASE),
+    _re.compile(r'.*구독.*평가.*리뷰.*'),
+    _re.compile(r'.*쇼 노트의 링크.*'),
+    _re.compile(r'.*팟캐스트.*구독.*'),
+    _re.compile(r'.*앱을 다운로드.*'),
+    _re.compile(r'.*코드를 사용하.*'),
+    _re.compile(r'.*프로모션 코드.*'),
+    _re.compile(r'.*후원사.*'),
+    _re.compile(r'.*광고.*메시지.*'),
+]
+
+
+def filter_ads(text):
+    """Remove lines matching common Korean ad patterns from translated text."""
+    lines = text.split('\n')
+    filtered = []
+    removed = 0
+    for line in lines:
+        stripped = line.strip()
+        if any(p.match(stripped) for p in _AD_PATTERNS):
+            removed += 1
+            continue
+        filtered.append(line)
+    if removed:
+        print(f"    🚫 Removed {removed} ad line(s)", flush=True)
+    return '\n'.join(filtered)
+
 
 def load_market_data():
     try:
@@ -240,6 +279,7 @@ TRANSCRIPT:
                 min_chars=translation_min,
                 max_tokens=65536
             )
+            summary = filter_ads(summary)
             summaries.append({"source": txt_file.stem, "summary": summary})
             print(f"  ✅ Summary: {len(summary):,} chars", flush=True)
             print(f"  --- Summary preview ---\n{summary}\n  ---", flush=True)
