@@ -49,5 +49,28 @@
     "market": [
       "증시", "지수", "선물", "시장 동향", "변동성", "투자자"
     ]
+  },
+  "fred_yoy_series": [
+    "CPIAUCSL", "CPILFESL", "PCEPI", "PCEPILFE",
+    "PPIFIS", "PPIACO", "RSXFS", "INDPRO", "GDP", "HOUST"
+  ],
+  "fred_labels": {
+    "PAYEMS":     "Nonfarm Payrolls (thousands)",
+    "UNRATE":     "Unemployment Rate (%)",
+    "CPIAUCSL":   "CPI YoY (%)",
+    "CPILFESL":   "Core CPI YoY (%)",
+    "PCEPI":      "PCE Inflation YoY (%)",
+    "PCEPILFE":   "Core PCE YoY (%)",
+    "FEDFUNDS":   "Fed Funds Rate (%)",
+    "DGS10":      "10-Year Treasury Yield (%)",
+    "DGS2":       "2-Year Treasury Yield (%)",
+    "RSXFS":      "Retail Sales YoY (%)",
+    "UMCSENT":    "Consumer Sentiment (U of Michigan)",
+    "INDPRO":     "Industrial Production YoY (%)",
+    "HOUST":      "Housing Starts YoY (%)",
+    "ICSA":       "Initial Jobless Claims (thousands)",
+    "GDP":        "GDP YoY (%)",
+    "DCOILWTICO": "WTI Crude Oil Price ($/barrel)",
+    "DEXUSEU":    "USD/EUR Exchange Rate"
   }
 }

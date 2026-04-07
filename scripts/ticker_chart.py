@@ -105,41 +105,7 @@ TICKER_MAP_FILE = "temp/ticker_map.json"
 PRICE_PERIOD    = "1mo"    # yfinance lookback
 FRED_MONTHS     = 24       # how many months of FRED history to show
 
-# Series that should be displayed as YoY % change instead of raw level/index.
-# These are cumulative levels or price indices where YoY is more informative.
-FRED_YOY_SERIES = {
-    "CPIAUCSL",   # CPI All Items
-    "CPILFESL",   # Core CPI (ex food & energy)
-    "PCEPI",      # PCE Price Index
-    "PCEPILFE",   # Core PCE (ex food & energy)
-    "PPIFIS",     # PPI Final Demand
-    "PPIACO",     # PPI All Commodities
-    "RSXFS",      # Retail Sales (level in millions $)
-    "INDPRO",     # Industrial Production (index level)
-    "GDP",        # GDP (level in billions)
-    "HOUST",      # Housing Starts (level in thousands)
-}
-
-# Human-readable labels for FRED series IDs shown in chart titles
-FRED_LABELS = {
-    "PAYEMS":     "Nonfarm Payrolls (thousands)",
-    "UNRATE":     "Unemployment Rate (%)",
-    "CPIAUCSL":   "CPI YoY (%)",
-    "CPILFESL":   "Core CPI YoY (%)",
-    "PCEPI":      "PCE Inflation YoY (%)",
-    "PCEPILFE":   "Core PCE YoY (%)",
-    "FEDFUNDS":   "Fed Funds Rate (%)",
-    "DGS10":      "10-Year Treasury Yield (%)",
-    "DGS2":       "2-Year Treasury Yield (%)",
-    "RSXFS":      "Retail Sales YoY (%)",
-    "UMCSENT":    "Consumer Sentiment (U of Michigan)",
-    "INDPRO":     "Industrial Production YoY (%)",
-    "HOUST":      "Housing Starts YoY (%)",
-    "ICSA":       "Initial Jobless Claims (thousands)",
-    "GDP":        "GDP YoY (%)",
-    "DCOILWTICO": "WTI Crude Oil Price ($/barrel)",
-    "DEXUSEU":    "USD/EUR Exchange Rate",
-}
+# FRED_YOY_SERIES and FRED_LABELS loaded from config below (after _ticker_cfg init)
 
 # ── Keyword-to-ticker mapping (loaded from config/ticker_config.json) ────────
 TICKER_CONFIG_FILE = os.path.join(os.path.dirname(__file__), "..", "config", "ticker_config.json")
@@ -154,6 +120,8 @@ def _load_ticker_config():
 
 _ticker_cfg = _load_ticker_config()
 KEYWORD_TICKERS = _ticker_cfg.get("keyword_tickers", {})
+FRED_YOY_SERIES = set(_ticker_cfg.get("fred_yoy_series", []))
+FRED_LABELS     = _ticker_cfg.get("fred_labels", {})
 
 
 def classify_story(title, body):
