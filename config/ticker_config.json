@@ -48,6 +48,11 @@
     "비트코인": "FRED:CBBTCUSD",
     "이더리움": "FRED:CBETHUSD",
     "암호화폐": "FRED:CBBTCUSD",
+    "주택가격": "FRED:CSUSHPINSA",
+    "집값": "FRED:CSUSHPINSA",
+    "케이스실러": "FRED:CSUSHPINSA",
+    "주택시장": "FRED:CSUSHPINSA",
+    "주택구매력": "FRED:FIXHAI",
     "S&P": "^GSPC",
     "나스닥": "^IXIC",
     "다우": "^DJI",
@@ -105,7 +110,8 @@
   },
   "fred_yoy_series": [
     "CPIAUCSL", "CPILFESL", "PCEPI", "PCEPILFE",
-    "PPIFIS", "PPIACO", "RSXFS", "INDPRO", "GDP", "HOUST"
+    "PPIFIS", "PPIACO", "RSXFS", "INDPRO", "GDP", "HOUST",
+    "CSUSHPINSA", "USSTHPI"
   ],
   "fred_labels": {
     "PAYEMS":     "Nonfarm Payrolls (thousands)",
@@ -162,6 +168,9 @@
     "VIXCLS":            "CBOE Volatility Index (VIX)",
     "DCOPPER":           "Copper Price ($/lb)",
     "CBBTCUSD":          "Bitcoin (USD)",
-    "CBETHUSD":          "Ethereum (USD)"
+    "CBETHUSD":          "Ethereum (USD)",
+    "CSUSHPINSA":        "Case-Shiller Home Price YoY (%)",
+    "USSTHPI":           "All-Transactions House Price YoY (%)",
+    "FIXHAI":            "Housing Affordability Index"
   }
 }
