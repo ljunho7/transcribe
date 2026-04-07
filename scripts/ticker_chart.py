@@ -632,7 +632,7 @@ def make_price_chart(ticker, output_path):
         ax.set_title(f"{title_line}   {pct:+.2f}%  (1개월)",
                      color="white", fontsize=20, pad=14, fontweight="bold")
         ax.tick_params(colors="#bbbbbb", labelsize=13)
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y.%m.%d"))
         ax.xaxis.set_major_locator(mdates.WeekdayLocator(byweekday=0))
         plt.xticks(rotation=0, ha="center")
         ax.yaxis.set_major_formatter(mticker.FuncFormatter(
@@ -757,7 +757,7 @@ def make_macro_chart(fred_id, output_path):
             color="white", fontsize=16, pad=14, fontweight="bold", linespacing=1.6
         )
         ax.tick_params(colors="#bbbbbb", labelsize=13)
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%y/%m"))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y.%m.%d"))
         ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))
         plt.xticks(rotation=0, ha="center")
         for spine in ax.spines.values():
