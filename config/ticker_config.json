@@ -30,7 +30,10 @@
     "나스닥": "^IXIC",
     "다우": "^DJI",
     "변동성": "^VIX",
-    "VIX": "^VIX"
+    "VIX": "^VIX",
+    "달러": "DX-Y.NYB",
+    "DXY": "DX-Y.NYB",
+    "달러인덱스": "DX-Y.NYB"
   },
   "categories": {
     "macro": [
