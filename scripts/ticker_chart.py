@@ -299,6 +299,8 @@ TYPE 2 — FRED macro series (official economic releases):
   - FRED:GOLDAMGBD228NLBM → Gold Price
   - FRED:PCOCOUSDM   → Cocoa Price
   - FRED:PALUMUSDM   → Aluminum Price
+  - FRED:CBBTCUSD    → Bitcoin Price (Coinbase)
+  - FRED:CBETHUSD    → Ethereum Price (Coinbase)
 
   CRITICAL: Never invent FRED series IDs. Only use IDs from the list above.
   For crude oil always use FRED:DCOILWTICO, never FRED:CRUDE or any other variant.

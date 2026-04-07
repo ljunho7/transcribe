@@ -45,6 +45,9 @@
     "천연가스": "FRED:DHHNGSP",
     "금": "FRED:GOLDAMGBD228NLBM",
     "은": "FRED:SLVPRUSD",
+    "비트코인": "FRED:CBBTCUSD",
+    "이더리움": "FRED:CBETHUSD",
+    "암호화폐": "FRED:CBBTCUSD",
     "S&P": "^GSPC",
     "나스닥": "^IXIC",
     "다우": "^DJI",
@@ -96,7 +99,9 @@
     "^DJI":     "DJIA",
     "^TNX":     "DGS10",
     "^TYX":     "DGS30",
-    "^VIX":     "VIXCLS"
+    "^VIX":     "VIXCLS",
+    "BTC-USD":  "CBBTCUSD",
+    "ETH-USD":  "CBETHUSD"
   },
   "fred_yoy_series": [
     "CPIAUCSL", "CPILFESL", "PCEPI", "PCEPILFE",
@@ -155,6 +160,8 @@
     "PNGASJPUSDM":       "LNG Price - Asia ($/MMBtu)",
     "PALLFNFINDEXM":     "All Commodities Price Index",
     "VIXCLS":            "CBOE Volatility Index (VIX)",
-    "DCOPPER":           "Copper Price ($/lb)"
+    "DCOPPER":           "Copper Price ($/lb)",
+    "CBBTCUSD":          "Bitcoin (USD)",
+    "CBETHUSD":          "Ethereum (USD)"
   }
 }
