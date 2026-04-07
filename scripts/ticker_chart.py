@@ -294,6 +294,11 @@ TYPE 2 — FRED macro series (official economic releases):
   - FRED:EXPINF10YR  → 10-Year Expected Inflation
   - FRED:REAINTRATREARAT10Y → 10-Year Real Interest Rate
   - FRED:T10YIE      → 10-Year Breakeven Inflation Rate
+  - FRED:GASREGW     → US Regular Gas Price
+  - FRED:APU0000708111 → Egg Price (per dozen)
+  - FRED:GOLDAMGBD228NLBM → Gold Price
+  - FRED:PCOCOUSDM   → Cocoa Price
+  - FRED:PALUMUSDM   → Aluminum Price
 
   CRITICAL: Never invent FRED series IDs. Only use IDs from the list above.
   For crude oil always use FRED:DCOILWTICO, never FRED:CRUDE or any other variant.
