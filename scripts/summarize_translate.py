@@ -339,8 +339,8 @@ Other rules:
 - Each story must be unique — never repeat the same topic
 - Once all unique stories are covered, STOP"""
 
-    # min_chars = 30% of combined size, floor 500, cap 10000
-    news_min_chars = 1000  # just ensure non-trivial output
+    # News section should be ~10% of combined input (dedup + compress)
+    news_min_chars = max(2000, int(len(combined) * 0.10))
     print(f"  🎯 News min_chars: {news_min_chars:,} chars", flush=True)
 
     news_script = call_gemini(
@@ -349,7 +349,7 @@ Other rules:
         min_chars=news_min_chars,
         max_tokens=32768,
         thinking=False,
-        models=["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite-preview"]
+        models=["gemini-2.5-flash", "gemini-3.1-flash-lite-preview", "gemini-2.5-flash-lite"]
     )
 
     # ── Combine and save ──────────────────────────────────────────────────
