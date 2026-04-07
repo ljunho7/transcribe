@@ -12,6 +12,7 @@ Usage:
     python review_script.py
 """
 
+import difflib
 import json
 import os
 import re
@@ -137,6 +138,36 @@ Return ONLY the corrected JSON object (same structure, same keys, updated bullet
 No markdown fences, no explanation."""
 
 
+def show_tracked_changes(original, corrected):
+    """Display changes like tracked changes — full text with deletions/additions highlighted."""
+    orig_lines = original.splitlines(keepends=True)
+    corr_lines = corrected.splitlines(keepends=True)
+
+    diff = list(difflib.ndiff(orig_lines, corr_lines))
+
+    print("\n── Tracked Changes ─────────────────────────────────", flush=True)
+    has_changes = False
+    for line in diff:
+        code = line[0]
+        text = line[2:].rstrip('\n')
+        if code == ' ':
+            # Unchanged line
+            print(f"  {text}", flush=True)
+        elif code == '-':
+            # Deleted (strikethrough-style)
+            print(f"  [-] {text}", flush=True)
+            has_changes = True
+        elif code == '+':
+            # Added
+            print(f"  [+] {text}", flush=True)
+            has_changes = True
+        # Skip '?' hint lines from ndiff
+
+    if not has_changes:
+        print("  (no changes)", flush=True)
+    print("────────────────────────────────────────────────────\n", flush=True)
+
+
 def review_script(client):
     """Review and correct the Korean script."""
     print("\n📝 Step 3.7a: Reviewing Korean script...", flush=True)
@@ -155,6 +186,9 @@ def review_script(client):
     if missing:
         print(f"  ⚠️  Corrected script missing tags: {missing} — keeping original", flush=True)
         return False
+
+    # Show tracked changes
+    show_tracked_changes(original, corrected)
 
     # Write corrected version
     with open(SCRIPT_FILE, "w", encoding="utf-8") as f:
