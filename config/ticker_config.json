@@ -20,6 +20,9 @@
     "주택착공": "FRED:HOUST",
     "실업수당": "FRED:ICSA",
     "PCE": "FRED:PCEPILFE",
+    "기대인플레이션": "FRED:MICH",
+    "인플레이션 기대": "FRED:MICH",
+    "실질금리": "FRED:REAINTRATREARAT10Y",
     "유가": "CL=F",
     "원유": "CL=F",
     "브렌트": "BZ=F",
@@ -109,6 +112,13 @@
     "SP500":             "S&P 500 Index",
     "NASDAQCOM":         "NASDAQ Composite",
     "DJIA":              "Dow Jones Industrial Average",
-    "DGS30":             "30-Year Treasury Yield (%)"
+    "DGS30":             "30-Year Treasury Yield (%)",
+    "MICH":              "U of Michigan Inflation Expectation (%)",
+    "EXPINF1YR":         "1-Year Expected Inflation (%)",
+    "EXPINF10YR":        "10-Year Expected Inflation (%)",
+    "EXPINF30YR":        "30-Year Expected Inflation (%)",
+    "REAINTRATREARAT10Y":"10-Year Real Interest Rate (%)",
+    "REAINTRATREARAT1YE":"1-Year Real Interest Rate (%)",
+    "T10YIE":            "10-Year Breakeven Inflation Rate (%)"
   }
 }

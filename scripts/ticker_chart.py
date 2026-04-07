@@ -289,6 +289,11 @@ TYPE 2 — FRED macro series (official economic releases):
   - FRED:DCOILWTICO  → WTI Crude Oil Price
   - FRED:DEXUSEU     → USD/EUR Exchange Rate
   - FRED:DGS10       → 10-Year Treasury Yield
+  - FRED:MICH        → U of Michigan Inflation Expectation
+  - FRED:EXPINF1YR   → 1-Year Expected Inflation
+  - FRED:EXPINF10YR  → 10-Year Expected Inflation
+  - FRED:REAINTRATREARAT10Y → 10-Year Real Interest Rate
+  - FRED:T10YIE      → 10-Year Breakeven Inflation Rate
 
   CRITICAL: Never invent FRED series IDs. Only use IDs from the list above.
   For crude oil always use FRED:DCOILWTICO, never FRED:CRUDE or any other variant.
