@@ -3,14 +3,32 @@ Step 4: Split Korean script by section and generate one MP3 per section/story.
 Output: temp/audio/01_시장개요.mp3, 02_주요등락.mp3, ..., 05_story_001.mp3, etc.
 """
 
-import os, re, time, subprocess
+import asyncio, os, re, time, subprocess
 from pathlib import Path
-from gtts import gTTS
+
+# Edge TTS — free neural Korean voices, no API key needed
+try:
+    import edge_tts
+    TTS_ENGINE = "edge"
+except ImportError:
+    try:
+        from gtts import gTTS
+        TTS_ENGINE = "gtts"
+    except ImportError:
+        raise ImportError("Install edge-tts or gTTS: pip install edge-tts")
 
 SCRIPT_FILE = "temp/korean_script.txt"
 AUDIO_DIR   = Path("temp/audio")
-TTS_LANG    = "ko"
-SPEED       = 1.5   # playback speed multiplier — adjust here
+
+# Edge TTS voice — ko-KR-InJoonNeural (male, news anchor style)
+# Alternative: ko-KR-SunHiNeural (female)
+EDGE_VOICE  = "ko-KR-InJoonNeural"
+EDGE_RATE   = "+10%"   # slightly faster than default (natural news pace)
+
+# gTTS fallback settings
+GTTS_LANG   = "ko"
+GTTS_SPEED  = 1.5      # playback speed multiplier for gTTS only
+
 PAUSE_SECTION = 1.5  # seconds of silence between market sections
 PAUSE_STORY   = 1.0  # seconds of silence between news stories
 
@@ -250,35 +268,68 @@ def append_silence(audio_path, seconds):
             pass
 
 
+async def _edge_tts(text, path):
+    """Generate audio using Edge TTS (neural voice)."""
+    communicate = edge_tts.Communicate(text, EDGE_VOICE, rate=EDGE_RATE)
+    await communicate.save(str(path))
+
+
+def _gtts_fallback(text, path):
+    """Generate audio using gTTS (robotic but reliable fallback)."""
+    from gtts import gTTS
+    tts = gTTS(text=text, lang=GTTS_LANG, slow=False)
+    tts.save(str(path))
+    # Speed up gTTS output (it's slow by default)
+    if GTTS_SPEED != 1.0:
+        tmp = path.with_suffix(".tmp.mp3")
+        path.rename(tmp)
+        subprocess.run([
+            "ffmpeg", "-y", "-i", str(tmp),
+            "-filter:a", f"atempo={GTTS_SPEED}",
+            "-q:a", "2",
+            str(path)
+        ], capture_output=True, check=True)
+        tmp.unlink()
+
+
 def tts_to_file(text, path, retries=3, pause=0):
-    """Generate TTS audio with retry, speed adjustment, and optional trailing pause."""
+    """Generate TTS audio with retry and optional trailing pause.
+    Uses Edge TTS (neural) with gTTS as fallback."""
     text = normalize_for_tts(text.strip())
     if not text:
         print(f"  ⚠️  Empty text for {path.name}, skipping", flush=True)
         return False
+
     for attempt in range(1, retries+1):
         try:
-            tts = gTTS(text=text, lang=TTS_LANG, slow=False)
-            tts.save(str(path))
-            # Speed up using ffmpeg atempo filter
-            if SPEED != 1.0:
-                tmp = path.with_suffix(".tmp.mp3")
-                path.rename(tmp)
-                subprocess.run([
-                    "ffmpeg", "-y", "-i", str(tmp),
-                    "-filter:a", f"atempo={SPEED}",
-                    "-q:a", "2",
-                    str(path)
-                ], capture_output=True, check=True)
-                tmp.unlink()
+            if TTS_ENGINE == "edge":
+                asyncio.run(_edge_tts(text, path))
+                engine_label = f"Edge/{EDGE_VOICE}"
+            else:
+                _gtts_fallback(text, path)
+                engine_label = f"gTTS/{GTTS_SPEED}x"
+
             if pause > 0:
                 append_silence(path, pause)
             size = path.stat().st_size
-            print(f"  ✅ {path.name}  ({len(text):,} chars, {size:,} bytes, {SPEED}x"
+            print(f"  ✅ {path.name}  ({len(text):,} chars, {size:,} bytes, {engine_label}"
                   f"{f', +{pause}s pause' if pause else ''})", flush=True)
             return True
         except Exception as e:
-            print(f"  ⚠️  TTS attempt {attempt} failed: {e}", flush=True)
+            print(f"  ⚠️  TTS attempt {attempt} failed ({TTS_ENGINE}): {e}", flush=True)
+            # If Edge TTS fails, try gTTS fallback on last attempt
+            if attempt == retries and TTS_ENGINE == "edge":
+                try:
+                    print(f"  ↪ Falling back to gTTS...", flush=True)
+                    _gtts_fallback(text, path)
+                    if pause > 0:
+                        append_silence(path, pause)
+                    size = path.stat().st_size
+                    print(f"  ✅ {path.name}  ({len(text):,} chars, {size:,} bytes, gTTS fallback"
+                          f"{f', +{pause}s pause' if pause else ''})", flush=True)
+                    return True
+                except Exception as e2:
+                    print(f"  ⚠️  gTTS fallback also failed: {e2}", flush=True)
             if attempt < retries:
                 time.sleep(5)
     return False
