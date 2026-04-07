@@ -55,6 +55,12 @@
       "증시", "지수", "선물", "시장 동향", "변동성", "투자자"
     ]
   },
+  "yfinance_to_fred": {
+    "CL=F":     "DCOILWTICO",
+    "BZ=F":     "DCOILWTICO",
+    "DX-Y.NYB": "DTWEXBGS",
+    "^TNX":     "DGS10"
+  },
   "fred_yoy_series": [
     "CPIAUCSL", "CPILFESL", "PCEPI", "PCEPILFE",
     "PPIFIS", "PPIACO", "RSXFS", "INDPRO", "GDP", "HOUST"

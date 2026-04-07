@@ -737,14 +737,8 @@ def make_macro_chart(fred_id, output_path):
         return False
 
 
-# FRED fallback for yfinance tickers that are often rate-limited or unsupported
-# Maps yfinance ticker → equivalent FRED series for chart generation
-YFINANCE_TO_FRED = {
-    "CL=F":     "DCOILWTICO",   # WTI Crude Oil
-    "BZ=F":     "DCOILWTICO",   # Brent → use WTI as proxy
-    "DX-Y.NYB": "DTWEXBGS",     # Dollar Index → Trade Weighted USD
-    "^TNX":     "DGS10",        # 10-Year Treasury
-}
+# FRED fallback for yfinance tickers — loaded from config/ticker_config.json
+YFINANCE_TO_FRED = _ticker_cfg.get("yfinance_to_fred", {})
 
 
 def make_chart(identifier, output_path):
