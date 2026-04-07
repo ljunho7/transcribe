@@ -51,45 +51,70 @@ except ImportError:
 # ── Korean font setup ─────────────────────────────────────────────────────────
 # Matplotlib uses a Latin-only default font. Set a Korean-capable font so
 # Hangul glyphs in chart titles (e.g. 월간 변화량) render correctly.
-_KOREAN_FONTS = [
-    "Malgun Gothic",    # Windows built-in
-    "AppleGothic",      # macOS built-in
-    "NanumGothic",      # Linux / manual install
-    "NanumBarunGothic",
-    "Noto Sans CJK KR",
-    "DejaVu Sans",      # fallback — no Korean but at least no crash
-]
-_available = {f.name for f in font_manager.fontManager.ttflist}
-for _font in _KOREAN_FONTS:
-    if _font in _available:
-        plt.rcParams["font.family"] = _font
-        break
-else:
-    # Name-based lookup failed — try finding the font file directly on disk
-    import platform, glob
-    _found = False
+import platform, glob
+
+def _setup_korean_font():
+    """Find and configure a Korean-capable font for matplotlib."""
+    # 1. Try name-based lookup first
+    _KOREAN_FONTS = [
+        "Malgun Gothic", "AppleGothic", "NanumGothic",
+        "NanumBarunGothic", "Noto Sans CJK KR",
+    ]
+    _available = {f.name for f in font_manager.fontManager.ttflist}
+    for _font in _KOREAN_FONTS:
+        if _font in _available:
+            plt.rcParams["font.family"] = _font
+            return True
+
+    # 2. Try disk-based lookup and register font file
     if platform.system() == "Windows":
         _candidates = glob.glob("C:/Windows/Fonts/malgun*.ttf") + \
                       glob.glob("C:/Windows/Fonts/NanumGothic*.ttf")
     elif platform.system() == "Linux":
-        _candidates = glob.glob("/usr/share/fonts/**/Noto*CJK*.otf", recursive=True) + \
-                      glob.glob("/usr/share/fonts/**/Noto*CJK*.ttc", recursive=True) + \
-                      glob.glob("/usr/share/fonts/**/NanumGothic*.ttf", recursive=True)
+        # Prefer .otf (individual) over .ttc (collection — face index issues)
+        _candidates = (
+            glob.glob("/usr/share/fonts/**/NotoSansCJKkr-Regular.otf", recursive=True) +
+            glob.glob("/usr/share/fonts/**/NanumGothic*.ttf", recursive=True) +
+            glob.glob("/usr/share/fonts/**/Noto*CJK*Regular*.otf", recursive=True) +
+            glob.glob("/usr/share/fonts/**/Noto*CJK*.ttc", recursive=True)
+        )
     else:
         _candidates = []
+
     for _path in _candidates:
-            try:
-                font_manager.fontManager.addfont(_path)
-                _prop = font_manager.FontProperties(fname=_path)
-                plt.rcParams["font.family"] = _prop.get_name()
-                _found = True
-                break
-            except Exception:
-                continue
-    if not _found:
-        # Last resort: just suppress the glyph warnings, chart still saves fine
-        import warnings
-        warnings.filterwarnings("ignore", message="Glyph .* missing from")
+        try:
+            font_manager.fontManager.addfont(_path)
+            _prop = font_manager.FontProperties(fname=_path)
+            _name = _prop.get_name()
+            plt.rcParams["font.family"] = _name
+            # Verify it actually has Korean glyphs by checking the name isn't fallback
+            if _name and _name != "DejaVu Sans":
+                return True
+        except Exception:
+            continue
+
+    # 3. Last resort: clear matplotlib font cache and try again
+    try:
+        import matplotlib
+        cache_dir = matplotlib.get_cachedir()
+        for f in glob.glob(os.path.join(cache_dir, "fontlist-*.json")):
+            os.remove(f)
+        font_manager._load_fontmanager(try_read_cache=False)
+        # Retry name lookup after cache clear
+        _available = {f.name for f in font_manager.fontManager.ttflist}
+        for _font in ["Noto Sans CJK KR", "NanumGothic"]:
+            if _font in _available:
+                plt.rcParams["font.family"] = _font
+                return True
+    except Exception:
+        pass
+
+    return False
+
+if not _setup_korean_font():
+    import warnings
+    warnings.filterwarnings("ignore", message="Glyph .* missing from")
+    print("⚠️  No Korean font found — chart titles may show □□□", flush=True)
 try:
     import pandas as pd
 except ImportError:
@@ -617,9 +642,8 @@ def make_price_chart(ticker, output_path):
             spine.set_edgecolor("#30363d")
         ax.grid(axis="y", color="#30363d", linestyle="--", linewidth=0.6, zorder=0)
 
-        fig.subplots_adjust(left=0.12, right=0.92, top=0.90, bottom=0.10)
-        plt.savefig(output_path, dpi=100, bbox_inches="tight",
-                    facecolor=fig.get_facecolor())
+        fig.subplots_adjust(left=0.14, right=0.90, top=0.88, bottom=0.14)
+        plt.savefig(output_path, dpi=100, facecolor=fig.get_facecolor())
         plt.close()
         return True
 
@@ -745,9 +769,8 @@ def make_macro_chart(fred_id, output_path):
             )
         ))
 
-        fig.subplots_adjust(left=0.12, right=0.92, top=0.88, bottom=0.10)
-        plt.savefig(output_path, dpi=100, bbox_inches="tight",
-                    facecolor=fig.get_facecolor())
+        fig.subplots_adjust(left=0.14, right=0.90, top=0.86, bottom=0.14)
+        plt.savefig(output_path, dpi=100, facecolor=fig.get_facecolor())
         plt.close()
         return True
 
