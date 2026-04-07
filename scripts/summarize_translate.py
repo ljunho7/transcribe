@@ -216,9 +216,13 @@ This is a FULL TRANSLATION task, not a summary. Preserve all details, data point
 quotes, and analysis. The Korean output should be roughly the same length as the
 English input (Korean text is naturally more compact, but do NOT omit content).
 
-SKIP ONLY these:
-- Sponsor messages or product promotions ("brought to you by...", "sponsored by...")
-- Calls to action ("visit our website", "download our app", "use code...")
+SKIP these completely — do NOT translate any of the following:
+- Sponsor messages ("brought to you by...", "sponsored by...", "support for this comes from...")
+- Product/service promotions (IBM, Chase, Hartford, Odoo, TrueStage, CARE, VantageCore, etc.)
+- Insurance, credit score, business software, charity pitches
+- Calls to action ("visit our website", "download our app", "use code...", "learn more at...")
+- Podcast self-promotion ("subscribe", "rate and review", "show notes", "links in description")
+- Any paragraph that is clearly an advertisement, not news content
 
 Translate ALL actual news, analysis, interviews, and commentary — do not summarize or shorten.
 Write in natural Korean prose — no bullet points, no headers, no tags.

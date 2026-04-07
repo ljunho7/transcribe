@@ -99,7 +99,18 @@ Review the script and return a CORRECTED version. Fix these issues:
    - The closing should end with "지금까지" pattern
    - Do NOT add or change the section tags ([시장개요], [뉴스], etc.)
 
-6. FORMAT PRESERVATION (CRITICAL)
+6. ADVERTISEMENT REMOVAL
+   - Remove ANY translated sponsor messages, product promotions, or service pitches
+   - Remove podcast app promotions, subscription pitches, website URLs
+   - Common ad patterns to remove:
+     * "~의 지원/후원을 받습니다", "~에서 제공합니다"
+     * Company pitches (IBM, Chase, Hartford, Odoo, TrueStage, CARE, etc.)
+     * "~에서 자세히 알아보세요", "~를 방문하세요", "~닷컴"
+     * Credit score services, insurance products, business software ads
+     * "쇼 노트의 링크를 사용하여" or similar podcast self-references
+   - If an entire story is just an ad, remove the story completely
+
+7. FORMAT PRESERVATION (CRITICAL)
    - Keep ALL section tags exactly as they are: [시장개요], [주요등락], [섹터분석], [국가별], [뉴스]
    - In [뉴스], each story must remain: headline on one line, body on next line(s),
      separated from other stories by a blank line
