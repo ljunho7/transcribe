@@ -89,7 +89,7 @@ else:
     if not _found:
         # Last resort: just suppress the glyph warnings, chart still saves fine
         import warnings
-        warnings.filterwarnings("ignore", message="Glyph .* missing from current font")
+        warnings.filterwarnings("ignore", message="Glyph .* missing from")
 try:
     import pandas as pd
 except ImportError:
@@ -737,12 +737,34 @@ def make_macro_chart(fred_id, output_path):
         return False
 
 
+# FRED fallback for yfinance tickers that are often rate-limited or unsupported
+# Maps yfinance ticker → equivalent FRED series for chart generation
+YFINANCE_TO_FRED = {
+    "CL=F":     "DCOILWTICO",   # WTI Crude Oil
+    "BZ=F":     "DCOILWTICO",   # Brent → use WTI as proxy
+    "DX-Y.NYB": "DTWEXBGS",     # Dollar Index → Trade Weighted USD
+    "^TNX":     "DGS10",        # 10-Year Treasury
+}
+
+
 def make_chart(identifier, output_path):
-    """Route to the right chart function based on identifier prefix."""
+    """Route to the right chart function based on identifier prefix.
+    Falls back to FRED for yfinance tickers that failed to fetch."""
     if identifier.startswith("FRED:"):
         return make_macro_chart(identifier[5:], output_path)
-    else:
-        return make_price_chart(identifier, output_path)
+
+    # Try price chart first
+    ok = make_price_chart(identifier, output_path)
+    if ok:
+        return True
+
+    # Fallback: try FRED equivalent if available
+    fred_id = YFINANCE_TO_FRED.get(identifier)
+    if fred_id and FRED_API_KEY:
+        print(f"    ↪ Falling back to FRED:{fred_id}", flush=True)
+        return make_macro_chart(fred_id, output_path)
+
+    return False
 
 
 def generate_charts(section_data):
