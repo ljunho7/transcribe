@@ -20,9 +20,9 @@ except ImportError:
 SCRIPT_FILE = "temp/korean_script.txt"
 AUDIO_DIR   = Path("temp/audio")
 
-# Edge TTS voice — ko-KR-InJoonNeural (male, news anchor style)
-# Alternative: ko-KR-SunHiNeural (female)
-EDGE_VOICE  = "ko-KR-InJoonNeural"
+# Edge TTS voice — ko-KR-SunHiNeural (female, news anchor style)
+# Alternative: ko-KR-InJoonNeural (male)
+EDGE_VOICE  = "ko-KR-SunHiNeural"
 EDGE_RATE   = "+10%"   # slightly faster than default (natural news pace)
 
 # gTTS fallback settings
