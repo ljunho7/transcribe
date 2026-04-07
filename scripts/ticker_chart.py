@@ -633,8 +633,8 @@ def make_price_chart(ticker, output_path):
                      color="white", fontsize=20, pad=14, fontweight="bold")
         ax.tick_params(colors="#bbbbbb", labelsize=13)
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y.%m.%d"))
-        ax.xaxis.set_major_locator(mdates.WeekdayLocator(byweekday=0))
-        plt.xticks(rotation=0, ha="center")
+        ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=3, maxticks=6))
+        plt.xticks(rotation=0, ha="center", fontsize=11)
         ax.yaxis.set_major_formatter(mticker.FuncFormatter(
             lambda x, _: f"{x:,.0f}" if abs(x) >= 100 else f"{x:.2f}"
         ))
@@ -758,8 +758,8 @@ def make_macro_chart(fred_id, output_path):
         )
         ax.tick_params(colors="#bbbbbb", labelsize=13)
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y.%m.%d"))
-        ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))
-        plt.xticks(rotation=0, ha="center")
+        ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=3, maxticks=6))
+        plt.xticks(rotation=0, ha="center", fontsize=11)
         for spine in ax.spines.values():
             spine.set_edgecolor("#30363d")
         ax.grid(axis="y", color="#30363d", linestyle="--", linewidth=0.6, zorder=0)
