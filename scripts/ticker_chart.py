@@ -141,27 +141,19 @@ FRED_LABELS = {
     "DEXUSEU":    "USD/EUR Exchange Rate",
 }
 
-# ── Keyword-to-ticker mapping ────────────────────────────────────────────────
-# Maps Korean financial keywords to their most relevant ticker.
-# Used as a pre-pass hint before Groq and as fallback for macro stories.
-KEYWORD_TICKERS = {
-    # Macro / economic indicators
-    "인플레이션": "FRED:CPIAUCSL",  "물가": "FRED:CPIAUCSL",
-    "소비자물가": "FRED:CPIAUCSL",  "CPI": "FRED:CPIAUCSL",
-    "고용": "FRED:PAYEMS",          "실업": "FRED:UNRATE",
-    "실업률": "FRED:UNRATE",        "비농업": "FRED:PAYEMS",
-    "금리": "FRED:FEDFUNDS",        "기준금리": "FRED:FEDFUNDS",
-    "연준": "FRED:FEDFUNDS",        "Fed": "FRED:FEDFUNDS",
-    "국채": "FRED:DGS10",           "10년물": "FRED:DGS10",
-    "소매": "FRED:RSXFS",           "소비자심리": "FRED:UMCSENT",
-    "GDP": "FRED:GDP",              "주택착공": "FRED:HOUST",
-    "실업수당": "FRED:ICSA",        "PCE": "FRED:PCEPILFE",
-    # Commodities
-    "유가": "CL=F",    "원유": "CL=F",     "브렌트": "BZ=F",
-    "WTI": "CL=F",     "석유": "CL=F",     "휘발유": "CL=F",
-    # Indices
-    "S&P": "^GSPC",    "나스닥": "^IXIC",  "다우": "^DJI",
-}
+# ── Keyword-to-ticker mapping (loaded from config/ticker_config.json) ────────
+TICKER_CONFIG_FILE = os.path.join(os.path.dirname(__file__), "..", "config", "ticker_config.json")
+
+def _load_ticker_config():
+    try:
+        with open(TICKER_CONFIG_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"  ⚠  Could not load {TICKER_CONFIG_FILE}: {e}", flush=True)
+        return {"keyword_tickers": {}, "categories": {}}
+
+_ticker_cfg = _load_ticker_config()
+KEYWORD_TICKERS = _ticker_cfg.get("keyword_tickers", {})
 
 
 def classify_story(title, body):
@@ -171,25 +163,15 @@ def classify_story(title, body):
     t_low = title.lower()
     b_low = body.lower()
 
-    CATEGORIES = {
-        "macro": ["인플레이션", "cpi", "고용", "실업", "금리", "gdp", "소매",
-                  "pce", "비농업", "소비자물가", "이민 정책", "경제적 영향",
-                  "임금", "중산층", "연준", "fed", "국채", "기준금리",
-                  "소비자심리", "주택착공", "실업수당"],
-        "geopolitical": ["전쟁", "분쟁", "유가", "원유", "관세", "제재",
-                         "이란", "러시아", "우크라이나", "중동", "호르무즈",
-                         "opec", "석유", "터미널", "제재", "휴전"],
-        "company": ["주가", "급등", "급락", "상승한", "하락한", "ipo",
-                    "인수", "m&a", "실적", "매출", "배당", "분기"],
-        "market": ["증시", "지수", "선물", "시장 동향", "변동성", "투자자"],
-    }
-
+    categories = _ticker_cfg.get("categories", {})
     scores = {}
-    for cat, keywords in CATEGORIES.items():
+    for cat, keywords in categories.items():
         title_hits = sum(1 for w in keywords if w in t_low)
         body_hits  = sum(1 for w in keywords if w in b_low)
         scores[cat] = title_hits * 2 + body_hits  # title counts double
 
+    if not scores:
+        return "other"
     best = max(scores, key=scores.get)
     if scores[best] == 0:
         return "other"

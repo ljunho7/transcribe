@@ -1,0 +1,53 @@
+{
+  "keyword_tickers": {
+    "인플레이션": "FRED:CPIAUCSL",
+    "물가": "FRED:CPIAUCSL",
+    "소비자물가": "FRED:CPIAUCSL",
+    "CPI": "FRED:CPIAUCSL",
+    "고용": "FRED:PAYEMS",
+    "실업": "FRED:UNRATE",
+    "실업률": "FRED:UNRATE",
+    "비농업": "FRED:PAYEMS",
+    "금리": "FRED:FEDFUNDS",
+    "기준금리": "FRED:FEDFUNDS",
+    "연준": "FRED:FEDFUNDS",
+    "Fed": "FRED:FEDFUNDS",
+    "국채": "FRED:DGS10",
+    "10년물": "FRED:DGS10",
+    "소매": "FRED:RSXFS",
+    "소비자심리": "FRED:UMCSENT",
+    "GDP": "FRED:GDP",
+    "주택착공": "FRED:HOUST",
+    "실업수당": "FRED:ICSA",
+    "PCE": "FRED:PCEPILFE",
+    "유가": "CL=F",
+    "원유": "CL=F",
+    "브렌트": "BZ=F",
+    "WTI": "CL=F",
+    "석유": "CL=F",
+    "휘발유": "CL=F",
+    "S&P": "^GSPC",
+    "나스닥": "^IXIC",
+    "다우": "^DJI"
+  },
+  "categories": {
+    "macro": [
+      "인플레이션", "cpi", "고용", "실업", "금리", "gdp", "소매",
+      "pce", "비농업", "소비자물가", "이민 정책", "경제적 영향",
+      "임금", "중산층", "연준", "fed", "국채", "기준금리",
+      "소비자심리", "주택착공", "실업수당"
+    ],
+    "geopolitical": [
+      "전쟁", "분쟁", "유가", "원유", "관세", "제재",
+      "이란", "러시아", "우크라이나", "중동", "호르무즈",
+      "opec", "석유", "터미널", "휴전"
+    ],
+    "company": [
+      "주가", "급등", "급락", "상승한", "하락한", "ipo",
+      "인수", "m&a", "실적", "매출", "배당", "분기"
+    ],
+    "market": [
+      "증시", "지수", "선물", "시장 동향", "변동성", "투자자"
+    ]
+  }
+}
