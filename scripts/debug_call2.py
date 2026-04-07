@@ -9,9 +9,10 @@ from google import genai
 from google.genai import types
 
 MODELS = [
+    "gemini-3-flash-preview",
+    "gemini-2.5-flash",
     "gemini-3.1-flash-lite-preview",
     "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
 ]
 MAX_RETRIES = 3
 RETRY_DELAY = 10
@@ -188,7 +189,7 @@ Rules:
         min_chars=news_min_chars,
         max_tokens=32768,
         no_thinking=True,
-        models=["gemini-2.5-flash", "gemini-2.5-flash-lite"]   # force full model for news
+        models=["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
     )
 
     # ── Save ──────────────────────────────────────────────────────────────

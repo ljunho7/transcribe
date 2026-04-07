@@ -12,6 +12,7 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
 MODELS = [
+    "gemini-3-flash-preview",
     "gemini-2.5-flash",
     "gemini-3.1-flash-lite-preview",
     "gemini-2.5-flash-lite",
@@ -349,7 +350,7 @@ Other rules:
         min_chars=news_min_chars,
         max_tokens=32768,
         thinking=False,
-        models=["gemini-2.5-flash", "gemini-3.1-flash-lite-preview", "gemini-2.5-flash-lite"]
+        models=["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-3.1-flash-lite-preview", "gemini-2.5-flash-lite"]
     )
 
     # ── Combine and save ──────────────────────────────────────────────────
