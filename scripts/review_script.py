@@ -189,7 +189,7 @@ def review_script(client):
     print(f"  Original: {len(original):,} chars", flush=True)
 
     corrected = call_gpt(client, SCRIPT_REVIEW_SYSTEM, original,
-                         min_chars=int(len(original) * 0.7))
+                         min_chars=int(len(original) * 0.4))
 
     # Validate that section tags are preserved
     required_tags = ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
