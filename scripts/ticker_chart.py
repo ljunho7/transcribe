@@ -635,9 +635,17 @@ def make_price_chart(ticker, output_path):
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y.%m.%d"))
         ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=3, maxticks=6))
         plt.xticks(rotation=0, ha="center", fontsize=11)
-        ax.yaxis.set_major_formatter(mticker.FuncFormatter(
-            lambda x, _: f"{x:,.0f}" if abs(x) >= 100 else f"{x:.2f}"
-        ))
+        # Y-axis format: skip decimals if the range is wide enough
+        y_range = hi - lo
+        if y_range >= 5 or abs(lo) >= 100:
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+                lambda x, _: f"{x:,.0f}"))
+        elif y_range >= 1:
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+                lambda x, _: f"{x:,.1f}"))
+        else:
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+                lambda x, _: f"{x:,.2f}"))
         for spine in ax.spines.values():
             spine.set_edgecolor("#30363d")
         ax.grid(axis="y", color="#30363d", linestyle="--", linewidth=0.6, zorder=0)
@@ -763,11 +771,21 @@ def make_macro_chart(fred_id, output_path):
         for spine in ax.spines.values():
             spine.set_edgecolor("#30363d")
         ax.grid(axis="y", color="#30363d", linestyle="--", linewidth=0.6, zorder=0)
-        ax.yaxis.set_major_formatter(mticker.FuncFormatter(
-            lambda x, _: f"{x:+,.0f}" if plot_change else (
-                f"{x:,.0f}" if abs(x) >= 100 else f"{x:.2f}"
-            )
-        ))
+        # Y-axis format: skip decimals if the range is wide enough
+        p_lo, p_hi = plot_series.min(), plot_series.max()
+        p_range = p_hi - p_lo
+        if plot_change:
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+                lambda x, _: f"{x:+,.0f}"))
+        elif p_range >= 5 or abs(p_lo) >= 100:
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+                lambda x, _: f"{x:,.0f}"))
+        elif p_range >= 1:
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+                lambda x, _: f"{x:,.1f}"))
+        else:
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+                lambda x, _: f"{x:,.2f}"))
 
         fig.subplots_adjust(left=0.14, right=0.90, top=0.86, bottom=0.14)
         plt.savefig(output_path, dpi=100, facecolor=fig.get_facecolor())
