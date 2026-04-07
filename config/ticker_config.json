@@ -28,7 +28,9 @@
     "휘발유": "CL=F",
     "S&P": "^GSPC",
     "나스닥": "^IXIC",
-    "다우": "^DJI"
+    "다우": "^DJI",
+    "변동성": "^VIX",
+    "VIX": "^VIX"
   },
   "categories": {
     "macro": [
