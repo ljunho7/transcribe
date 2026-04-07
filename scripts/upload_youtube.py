@@ -42,16 +42,21 @@ def upload_to_youtube():
     today_en = datetime.now(KST).strftime("%Y-%m-%d")
 
     with open("temp/korean_script.txt", "r", encoding="utf-8") as f:
-        script_preview = f.read()[:300].strip()
+        full_script = f.read().strip()
+
+    # YouTube description limit is 5,000 chars
+    # Header + script + tags, truncate script if needed
+    header = f"📰 {today_kr} 주요 글로벌 뉴스를 한국어로 요약해드립니다.\n\n"
+    footer = f"\n\n#뉴스 #한국어뉴스 #글로벌뉴스 #경제뉴스 #시사 #{today_en.replace('-', '')}"
+    max_script = 5000 - len(header) - len(footer) - 50  # safety margin
+    script_text = full_script[:max_script]
+    if len(full_script) > max_script:
+        script_text += "\n\n(전체 스크립트는 자막을 켜주세요)"
 
     body = {
         "snippet": {
             "title": f"오늘의 글로벌 뉴스 요약 | {today_kr}",
-            "description": (
-                f"📰 {today_kr} 주요 글로벌 뉴스를 한국어로 요약해드립니다.\n\n"
-                f"{script_preview}...\n\n"
-                f"#뉴스 #한국어뉴스 #글로벌뉴스 #경제뉴스 #시사 #{today_en.replace('-', '')}"  
-            ),
+            "description": header + script_text + footer,
             "tags": ["뉴스", "한국어뉴스", "글로벌뉴스", "경제", "시사", "뉴스요약"],
             "categoryId": "25",  # News & Politics
             "defaultLanguage": "ko",
