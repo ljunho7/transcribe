@@ -165,31 +165,35 @@ KEYWORD_TICKERS = {
 
 
 def classify_story(title, body):
-    """Classify a news story to determine ticker selection strategy.
+    """Classify a news story by counting keyword hits per category.
     Returns: 'macro', 'company', 'geopolitical', 'market', or 'other'.
-    Uses title for primary classification; body only for secondary clues."""
+    Title hits count double to weight the story's primary focus."""
     t_low = title.lower()
     b_low = body.lower()
-    full  = t_low + " " + b_low
 
-    # Macro — check title + body for economic indicators
-    if any(w in full for w in ["인플레이션", "cpi", "고용", "실업", "금리",
-                                "gdp", "소매", "pce", "비농업", "소비자물가",
-                                "이민 정책", "경제적 영향", "임금", "중산층"]):
-        return "macro"
-    # Geopolitical — primarily from title to avoid false matches from body cross-refs
-    if any(w in t_low for w in ["전쟁", "분쟁", "유가", "원유", "관세",
-                                 "제재", "이란", "러시아", "우크라이나", "중동",
-                                 "호르무즈", "opec", "석유", "터미널"]):
-        return "geopolitical"
-    # Company — requires explicit price movement language
-    if any(w in full for w in ["주가", "급등", "급락", "상승한", "하락한",
-                                "ipo", "인수", "m&a", "실적", "매출"]):
-        return "company"
-    # Market overview
-    if any(w in full for w in ["증시", "지수", "선물", "시장 동향", "변동성"]):
-        return "market"
-    return "other"
+    CATEGORIES = {
+        "macro": ["인플레이션", "cpi", "고용", "실업", "금리", "gdp", "소매",
+                  "pce", "비농업", "소비자물가", "이민 정책", "경제적 영향",
+                  "임금", "중산층", "연준", "fed", "국채", "기준금리",
+                  "소비자심리", "주택착공", "실업수당"],
+        "geopolitical": ["전쟁", "분쟁", "유가", "원유", "관세", "제재",
+                         "이란", "러시아", "우크라이나", "중동", "호르무즈",
+                         "opec", "석유", "터미널", "제재", "휴전"],
+        "company": ["주가", "급등", "급락", "상승한", "하락한", "ipo",
+                    "인수", "m&a", "실적", "매출", "배당", "분기"],
+        "market": ["증시", "지수", "선물", "시장 동향", "변동성", "투자자"],
+    }
+
+    scores = {}
+    for cat, keywords in CATEGORIES.items():
+        title_hits = sum(1 for w in keywords if w in t_low)
+        body_hits  = sum(1 for w in keywords if w in b_low)
+        scores[cat] = title_hits * 2 + body_hits  # title counts double
+
+    best = max(scores, key=scores.get)
+    if scores[best] == 0:
+        return "other"
+    return best
 
 
 def keyword_scan(text):
