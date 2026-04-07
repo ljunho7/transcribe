@@ -204,25 +204,61 @@ Return ONLY the corrected JSON object (same structure, same keys, updated bullet
 No markdown fences, no explanation."""
 
 
-def show_tracked_changes(original, corrected):
-    """Display changes like tracked changes — full text with deletions/additions highlighted."""
-    orig_lines = original.splitlines(keepends=True)
-    corr_lines = corrected.splitlines(keepends=True)
+def _inline_diff(old_line, new_line):
+    """Show word-level changes within a line. Returns formatted string."""
+    sm = difflib.SequenceMatcher(None, old_line, new_line)
+    old_parts, new_parts = [], []
+    for op, i1, i2, j1, j2 in sm.get_opcodes():
+        if op == 'equal':
+            old_parts.append(old_line[i1:i2])
+            new_parts.append(new_line[j1:j2])
+        elif op == 'replace':
+            old_parts.append(f"«{old_line[i1:i2]}»")
+            new_parts.append(f"→«{new_line[j1:j2]}»")
+        elif op == 'delete':
+            old_parts.append(f"«{old_line[i1:i2]}»")
+        elif op == 'insert':
+            new_parts.append(f"→«{new_line[j1:j2]}»")
+    return ''.join(old_parts), ''.join(new_parts)
 
-    diff = list(difflib.ndiff(orig_lines, corr_lines))
+
+def show_tracked_changes(original, corrected):
+    """Display changes with inline highlights showing exactly what changed."""
+    orig_lines = original.splitlines()
+    corr_lines = corrected.splitlines()
+
+    sm = difflib.SequenceMatcher(None, orig_lines, corr_lines)
 
     print("\n── Tracked Changes ─────────────────────────────────", flush=True)
     has_changes = False
-    for line in diff:
-        code = line[0]
-        text = line[2:].rstrip('\n')
-        if code == ' ':
-            print(f"  {text}", flush=True)
-        elif code == '-':
-            print(f"  [-] {text}", flush=True)
+
+    for op, i1, i2, j1, j2 in sm.get_opcodes():
+        if op == 'equal':
+            for line in orig_lines[i1:i2]:
+                print(f"  {line}", flush=True)
+        elif op == 'replace':
+            # Show inline diff for each pair of changed lines
+            for k in range(max(i2 - i1, j2 - j1)):
+                old = orig_lines[i1 + k] if i1 + k < i2 else ""
+                new = corr_lines[j1 + k] if j1 + k < j2 else ""
+                if old == new:
+                    print(f"  {old}", flush=True)
+                elif old and new:
+                    old_fmt, new_fmt = _inline_diff(old, new)
+                    print(f"  [-] {old_fmt}", flush=True)
+                    print(f"  [+] {new_fmt}", flush=True)
+                elif old:
+                    print(f"  [-] {old}", flush=True)
+                else:
+                    print(f"  [+] {new}", flush=True)
             has_changes = True
-        elif code == '+':
-            print(f"  [+] {text}", flush=True)
+        elif op == 'delete':
+            for line in orig_lines[i1:i2]:
+                print(f"  [REMOVED] {line}", flush=True)
+            has_changes = True
+        elif op == 'insert':
+            for line in corr_lines[j1:j2]:
+                print(f"  [ADDED] {line}", flush=True)
             has_changes = True
 
     if not has_changes:
