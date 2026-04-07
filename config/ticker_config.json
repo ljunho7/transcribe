@@ -80,7 +80,11 @@
     "NG=F":     "DHHNGSP",
     "GC=F":     "GOLDAMGBD228NLBM",
     "SI=F":     "SLVPRUSD",
-    "HG=F":     "DCOPPER",
+    "HG=F":     "PCOPPUSDM",
+    "CC=F":     "PCOCOUSDM",
+    "ALI=F":    "PALUMUSDM",
+    "RB=F":     "GASREGW",
+    "HO=F":     "GASDESW",
     "DX-Y.NYB": "DTWEXBGS",
     "EURUSD=X": "DEXUSEU",
     "JPY=X":    "DEXJPUS",
@@ -91,7 +95,8 @@
     "^IXIC":    "NASDAQCOM",
     "^DJI":     "DJIA",
     "^TNX":     "DGS10",
-    "^TYX":     "DGS30"
+    "^TYX":     "DGS30",
+    "^VIX":     "VIXCLS"
   },
   "fred_yoy_series": [
     "CPIAUCSL", "CPILFESL", "PCEPI", "PCEPILFE",
@@ -148,6 +153,8 @@
     "PALUMUSDM":         "Aluminum Price ($/metric ton)",
     "PCOPPUSDM":         "Copper Price ($/metric ton)",
     "PNGASJPUSDM":       "LNG Price - Asia ($/MMBtu)",
-    "PALLFNFINDEXM":     "All Commodities Price Index"
+    "PALLFNFINDEXM":     "All Commodities Price Index",
+    "VIXCLS":            "CBOE Volatility Index (VIX)",
+    "DCOPPER":           "Copper Price ($/lb)"
   }
 }
