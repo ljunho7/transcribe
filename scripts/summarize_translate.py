@@ -380,6 +380,13 @@ CRITICAL: Preserve as much detail as possible. These are expert insights that vi
 Do NOT summarize or shorten — translate and organize faithfully.
 Keep specific data points, forecasts, analyst names, and reasoning.
 
+WRITING STYLE for research section:
+- Use "~에 따르면" attribution style, NOT "~는" style
+  BAD:  "Goldman Sachs의 Samantha Dart 책임자는 ~라고 경고했습니다."
+  GOOD: "Goldman Sachs의 Samantha Dart 책임자에 따르면, ~할 수 있다고 합니다."
+- This makes it clear the view belongs to the analyst, not the broadcast anchor
+- Use phrases like: "~에 따르면", "~의 분석에 의하면", "~은/는 ~라고 전망했습니다"
+
 Your task:
 1. Organize each research piece as a separate story
 2. Preserve the depth and detail of each analysis
