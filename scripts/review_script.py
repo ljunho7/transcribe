@@ -180,6 +180,7 @@ SCRIPT TO REVIEW:
 BULLETS_REVIEW_SYSTEM = """\
 You are reviewing bullet points for a Korean financial news broadcast video overlay.
 Each bullet appears on-screen alongside a chart during the news story.
+The audience is general Korean investors, NOT finance professionals.
 
 Review and fix each section's bullets:
 
@@ -200,8 +201,24 @@ Review and fix each section's bullets:
    - No repeated bullets within a section
    - No two bullets saying the same thing in different words
 
-5. QUANTITY
+5. QUANTITY FOR 뉴스 sections
    - Keep the same number of bullets per section (do not add or remove)
+
+6. JARGON DEFINITIONS FOR 리서치 sections (IMPORTANT)
+   - For sections starting with "리서치:", ADD extra bullets that explain
+     any technical/jargon terms used in the story body
+   - Format: "📖 [term]: [1-line Korean definition]"
+   - No character limit for these definition bullets
+   - Add as many as needed — every jargon term should be explained
+   - Examples:
+     "📖 CLO: 대출채권을 묶어 만든 투자상품"
+     "📖 수요 파괴: 가격이 너무 올라 소비가 줄어드는 현상"
+     "📖 큐비트: 양자컴퓨터의 연산 단위로 0과 1을 동시에 처리"
+     "📖 사모 대출: 은행이 아닌 민간 펀드가 기업에 직접 빌려주는 대출"
+     "📖 환매 제한: 투자금 인출이 일시적으로 제한되는 조치"
+     "📖 스프레드: 두 금리 사이의 차이"
+     "📖 레버리지: 빌린 돈으로 투자 규모를 키우는 것"
+   - Place these definition bullets AFTER the regular fact bullets
 
 Return ONLY the corrected JSON object (same structure, same keys, updated bullets).
 No markdown fences, no explanation."""

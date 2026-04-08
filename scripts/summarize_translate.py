@@ -387,6 +387,25 @@ WRITING STYLE for research section:
 - This makes it clear the view belongs to the analyst, not the broadcast anchor
 - Use phrases like: "~에 따르면", "~의 분석에 의하면", "~은/는 ~라고 전망했습니다"
 
+LISTENER-FRIENDLY language:
+- The audience is general Korean investors, NOT finance professionals
+- When using technical/jargon terms, add a brief explanation in parentheses
+  or as a natural clause the FIRST time each term appears:
+  BAD:  "CLO 시장처럼 이번 위기를 거치며"
+  GOOD: "CLO(대출채권담보부증권) 시장처럼 이번 위기를 거치며"
+  BAD:  "수요 파괴 시나리오가 현실화될 수 있습니다"
+  GOOD: "가격이 너무 올라 소비를 억제하는 수요 파괴 시나리오가 현실화될 수 있습니다"
+  BAD:  "큐비트를 활용해"
+  GOOD: "0과 1을 동시에 처리할 수 있는 큐비트라는 단위를 활용해"
+- Common terms that need explanation:
+  사모 대출 → 사모 대출(은행을 거치지 않는 민간 대출)
+  환매 제한 → 환매 제한(투자금 인출 제한)
+  스프레드 → 스프레드(금리 차이)
+  레버리지 → 레버리지(차입 비율)
+  PIK → PIK(이자를 현금 대신 추가 대출로 지급)
+  선점자 우위 → 선점자 우위(먼저 진입한 기업이 갖는 이점)
+  페트로달러 → 페트로달러(석유 거래에 쓰이는 달러)
+
 Your task:
 1. Organize each research piece as a separate story
 2. Preserve the depth and detail of each analysis
