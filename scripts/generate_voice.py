@@ -204,44 +204,29 @@ def parse_sections(script):
 
 
 def parse_news_stories(news_text):
-    """Split [뉴스] section into individual stories."""
+    """Split [뉴스] section into individual stories.
+    Format: stories separated by blank lines, title and body on consecutive lines."""
     stories = []
-    current_headline = None
-    current_body = []
+    chunks = [c.strip() for c in re.split(r'\n{2,}', news_text) if c.strip()]
 
-    for line in news_text.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
+    for chunk in chunks:
+        lines = chunk.split('\n', 1)
+        title = lines[0].strip()
+        body  = lines[1].strip() if len(lines) > 1 else ""
 
-        is_headline = (
-            5 < len(line) < 35
-            and not line.endswith("다.")
-            and not line.endswith("다")
-            and not line.endswith(".")
-        )
+        # Skip closing remarks
+        if title.startswith('지금까지') or title.startswith('오늘 준비한'):
+            break
 
-        if is_headline and current_headline is None:
-            # First headline — treat preceding text as intro
-            stories.append({"headline": "뉴스 브리핑", "text": line})
-            current_headline = line
-            current_body = []
-        elif is_headline:
-            if current_body:
-                stories.append({
-                    "headline": current_headline,
-                    "text": "\n".join(current_body)
-                })
-            current_headline = line
-            current_body = []
-        else:
-            current_body.append(line)
+        # If no body, treat the whole chunk as body with generic headline
+        if not body:
+            # Could be a single-line intro or closing — skip if short
+            if len(title) < 10:
+                continue
+            body = title
+            title = "뉴스"
 
-    if current_headline and current_body:
-        stories.append({
-            "headline": current_headline,
-            "text": "\n".join(current_body)
-        })
+        stories.append({"headline": title, "text": body})
 
     return stories
 
