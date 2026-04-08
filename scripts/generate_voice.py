@@ -36,8 +36,8 @@ SCRIPT_FILE = "temp/korean_script.txt"
 AUDIO_DIR   = Path("temp/audio")
 
 # Google Cloud TTS settings
-GOOGLE_VOICE = "ko-KR-Wavenet-A"  # Female WaveNet (premium quality)
-# Alternatives: ko-KR-Wavenet-B (male), ko-KR-Wavenet-C (female), ko-KR-Wavenet-D (male)
+GOOGLE_VOICE = "ko-KR-Neural2-A"  # Female Neural2 (latest, best quality)
+# Alternatives: ko-KR-Neural2-B (male), ko-KR-Neural2-C (female), ko-KR-Neural2-D (male)
 GOOGLE_SPEED = 1.1  # slightly faster than default
 
 # Edge TTS settings (fallback)
