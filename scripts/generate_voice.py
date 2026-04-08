@@ -36,9 +36,11 @@ SCRIPT_FILE = "temp/korean_script.txt"
 AUDIO_DIR   = Path("temp/audio")
 
 # Google Cloud TTS settings
-GOOGLE_VOICE = "ko-KR-Neural2-A"  # Female Neural2 (latest, best quality)
-# Alternatives: ko-KR-Neural2-B (male), ko-KR-Neural2-C (female), ko-KR-Neural2-D (male)
+GOOGLE_VOICE = "ko-KR-Chirp3-HD-Zephyr"  # Chirp3-HD (best quality, LLM-powered)
+# Alternatives: ko-KR-Neural2-A (female), ko-KR-Neural2-B (male)
 GOOGLE_SPEED = 1.1  # slightly faster than default
+GOOGLE_DAILY_CAP = 35000  # max chars/day to stay within 1M/month free tier
+_google_chars_used = 0  # tracks usage per run
 
 # Edge TTS settings (fallback)
 EDGE_VOICE = "ko-KR-SunHiNeural"
@@ -330,10 +332,18 @@ def tts_to_file(text, path, retries=3, pause=0):
         print(f"  ⚠️  Empty text for {path.name}, skipping", flush=True)
         return False
 
+    global _google_chars_used
+
     # Try engines in priority order
     engines = []
     if TTS_ENGINE == "google":
-        engines = [("google", "Google WaveNet"), ("edge", "Edge TTS"), ("gtts", "gTTS")]
+        # Check daily cap — switch to Edge TTS if exceeded
+        if _google_chars_used + len(text) > GOOGLE_DAILY_CAP:
+            print(f"  ⚠️  Google TTS daily cap reached ({_google_chars_used:,}/{GOOGLE_DAILY_CAP:,} chars) — using Edge TTS",
+                  flush=True)
+            engines = [("edge", "Edge TTS"), ("gtts", "gTTS")]
+        else:
+            engines = [("google", "Google Chirp3-HD"), ("edge", "Edge TTS"), ("gtts", "gTTS")]
     elif TTS_ENGINE == "edge":
         engines = [("edge", "Edge TTS"), ("gtts", "gTTS")]
     else:
@@ -344,6 +354,7 @@ def tts_to_file(text, path, retries=3, pause=0):
             try:
                 if engine_id == "google":
                     _google_tts(text, path)
+                    _google_chars_used += len(text)
                 elif engine_id == "edge":
                     asyncio.run(_edge_tts(text, path))
                 else:
