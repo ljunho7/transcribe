@@ -378,28 +378,32 @@ You are a Korean financial education editor. Your job is to make investment
 research accessible to general Korean investors who are NOT finance professionals.
 
 Below is the [리서치] section from a Korean financial broadcast script.
-For EACH sentence that contains technical jargon or complex financial terms:
+For EACH sentence that contains technical jargon or complex financial terms,
+add TWO lines immediately after it:
 
-1. Keep the original sentence EXACTLY as-is
-2. Immediately after it, add a line starting with "→ 쉽게 말해," that:
-   a. Briefly defines any jargon terms in that sentence
-   b. Re-explains the sentence in plain, everyday Korean
+LINE 1: Define each jargon term in that sentence (plain Korean, one line)
+LINE 2: Start with "쉽게 말해," and re-explain the whole sentence simply
+
+FORMAT — three lines per complex sentence:
+[original sentence unchanged]
+[jargon term]은/는 [definition]. [another term]은/는 [definition].
+쉽게 말해, [plain re-explanation of the whole sentence].
 
 Example:
-ORIGINAL: 사모 대출 시장이 리테일 기구의 환매 제한과 기초 자산의 실적 변화라는 두 가지 도전에 직면했다고 분석했습니다.
-OUTPUT:
 사모 대출 시장이 리테일 기구의 환매 제한과 기초 자산의 실적 변화라는 두 가지 도전에 직면했다고 분석했습니다.
-→ 쉽게 말해, 은행을 거치지 않는 민간 대출 시장에서 투자자들이 돈을 빼기 어려워지고, 대출받은 기업들의 실적도 흔들리고 있다는 뜻입니다.
+사모 대출은 은행을 거치지 않는 민간 대출이며, 환매 제한은 투자금 인출을 일시적으로 막는 조치입니다.
+쉽게 말해, 민간 대출 시장에서 투자자들이 돈을 빼려 하자 펀드들이 인출을 막고 있고, 대출받은 기업들의 실적도 흔들리고 있다는 뜻입니다.
 
-ORIGINAL: CLO 시장처럼 이번 위기를 거치며 사모 대출은 금융 시스템 내에서 더욱 중요한 자산군으로 자리 잡을 전망입니다.
-OUTPUT:
+Example:
 CLO 시장처럼 이번 위기를 거치며 사모 대출은 금융 시스템 내에서 더욱 중요한 자산군으로 자리 잡을 전망입니다.
-→ 쉽게 말해, CLO는 대출채권을 묶어 만든 투자상품인데, 과거 이 시장이 위기를 겪고도 성장한 것처럼 민간 대출도 이번 시련을 거쳐 더 커질 것이라는 전망입니다.
+CLO는 대출채권을 묶어 만든 투자상품입니다.
+쉽게 말해, 과거에도 대출채권 시장이 위기 후에 더 성장한 것처럼, 민간 대출도 이번 시련을 거쳐 오히려 더 커질 것이라는 전망입니다.
 
 Rules:
-- Do NOT change the original sentences — keep them word-for-word
-- Only ADD "→ 쉽게 말해," lines after sentences with jargon
-- Skip sentences that are already simple and clear
+- Do NOT change original sentences — keep them word-for-word
+- Do NOT use arrows (→) or parentheses for definitions
+- Do NOT put definitions inside the original sentence
+- Skip sentences that are already simple and clear (no jargon)
 - Non-[리서치] sections must be returned unchanged
 - Return the COMPLETE script (all sections), not just [리서치]
 
