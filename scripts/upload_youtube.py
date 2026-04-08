@@ -31,10 +31,7 @@ def upload_to_youtube():
         client_id=os.environ["YOUTUBE_CLIENT_ID"],
         client_secret=os.environ["YOUTUBE_CLIENT_SECRET"],
         token_uri="https://oauth2.googleapis.com/token",
-        scopes=[
-            "https://www.googleapis.com/auth/youtube.upload",
-            "https://www.googleapis.com/auth/youtube.force-ssl",
-        ],
+        scopes=["https://www.googleapis.com/auth/youtube.upload"],
     )
     creds.refresh(Request())
 
@@ -108,11 +105,10 @@ def upload_to_youtube():
     print(f"   Video ID : {video_id}")
     print(f"   URL      : https://www.youtube.com/watch?v={video_id}")
 
-    # Upload subtitles if available
+    # Caption upload requires youtube.force-ssl scope — skip for now
+    # Subtitles are included in the video description instead
     if os.path.exists(SUBTITLE_FILE):
-        upload_captions(youtube, video_id)
-    else:
-        print(f"  ⚠️  No subtitle file found: {SUBTITLE_FILE}")
+        print(f"  📝 Subtitle file available: {SUBTITLE_FILE} (not uploaded — needs separate OAuth scope)")
 
 
 def upload_captions(youtube, video_id):
