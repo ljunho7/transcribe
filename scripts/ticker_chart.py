@@ -470,7 +470,7 @@ def _fetch_alpha_vantage(ticker):
 
     # Alpha Vantage doesn't support indices (^GSPC) or futures (CL=F) —
     # skip these rather than using proxy ETFs which have different price levels
-    if ticker.startswith("^") or ticker.endswith("=F") or ticker.endswith("=X"):
+    if ticker.startswith("^") or ticker.endswith("=F") or ticker.endswith("=X") or "." in ticker:
         return None, None
 
     av_ticker = ticker
