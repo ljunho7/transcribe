@@ -437,12 +437,13 @@ def extract_section_data(sections):
 
 # ── 3. Chart generation ───────────────────────────────────────────────────────
 
-def _safe_filename(section_label, identifier):
-    # Use section type (e.g. "뉴스") + ticker only
+def _safe_filename(section_label, identifier, suffix=""):
+    # Use section type (e.g. "뉴스") + ticker + optional suffix (period)
     section_type = section_label.split(":")[0].split("：")[0].strip()
     safe_type  = re.sub(r'[^\w]', '_', section_type)
     safe_ident = re.sub(r'[^\w]', '_', identifier)
-    return os.path.join(OUTPUT_DIR, f"{safe_type}__{safe_ident}.png")
+    safe_suffix = f"_{suffix}" if suffix else ""
+    return os.path.join(OUTPUT_DIR, f"{safe_type}__{safe_ident}{safe_suffix}.png")
 
 
 def _fetch_alpha_vantage(ticker):
@@ -557,28 +558,48 @@ def prefetch_price_data(tickers):
 _price_cache = {}
 
 
+# Time horizons for repeated tickers — each occurrence gets a different period
+_PRICE_PERIODS = [
+    ("1mo",  "1개월"),
+    ("3mo",  "3개월"),
+    ("6mo",  "6개월"),
+    ("1y",   "1년"),
+]
+_ticker_period_idx = {}  # tracks which period to use next for each ticker
+
+
 def make_price_chart(ticker, output_path):
-    """1-month daily price chart. Dark background, green/red line."""
+    """Price chart with rotating time horizons for repeated tickers."""
+    # Pick the next time horizon for this ticker
+    pidx = _ticker_period_idx.get(ticker, 0)
+    period, period_label = _PRICE_PERIODS[min(pidx, len(_PRICE_PERIODS) - 1)]
+    _ticker_period_idx[ticker] = pidx + 1
+
     try:
-        if ticker in _price_cache:
+        # Use cached data for 1mo (default), fetch fresh for longer periods
+        if ticker in _price_cache and pidx == 0:
             close     = _price_cache[ticker]["close"]
             full_name = _price_cache[ticker]["name"]
         else:
-            # Fallback: try Alpha Vantage then yfinance
-            close, full_name = _fetch_alpha_vantage(ticker)
-            if close is None or len(close) < 3:
-                try:
-                    t    = yf.Ticker(ticker)
-                    data = t.history(period=PRICE_PERIOD)
-                    if data.empty or len(data) < 3:
+            # Fetch with the appropriate period
+            try:
+                t    = yf.Ticker(ticker)
+                data = t.history(period=period)
+                if data.empty or len(data) < 3:
+                    # Try Alpha Vantage (only supports ~1mo)
+                    close, full_name = _fetch_alpha_vantage(ticker)
+                    if close is None or len(close) < 3:
                         print(f"\n    ⚠  No price data for {ticker}")
                         return False
+                else:
                     close = data["Close"].squeeze()
                     try:
                         full_name = (t.info.get("shortName") or t.info.get("longName") or "")
                     except Exception:
                         full_name = ""
-                except Exception:
+            except Exception:
+                close, full_name = _fetch_alpha_vantage(ticker)
+                if close is None or len(close) < 3:
                     print(f"\n    ⚠  No price data for {ticker}")
                     return False
 
@@ -611,7 +632,7 @@ def make_price_chart(ticker, output_path):
             color=color, fontsize=14, fontweight="bold", va="center"
         )
 
-        ax.set_title(f"{title_line}   {pct:+.2f}%  (1개월)",
+        ax.set_title(f"{title_line}   {pct:+.2f}%  ({period_label})",
                      color="white", fontsize=20, pad=14, fontweight="bold")
         ax.tick_params(colors="#bbbbbb", labelsize=13)
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y.%m.%d"))
@@ -813,7 +834,8 @@ def generate_charts(section_data):
     Mutates section_data in-place, adding a "charts" key to each entry.
     Returns section_data.
     """
-    global _price_cache
+    global _price_cache, _ticker_period_idx
+    _ticker_period_idx = {}  # reset period tracker for each run
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Fixed sections use pre-generated images (background/movers/sectors/countries)
@@ -841,7 +863,10 @@ def generate_charts(section_data):
         print(f"\n📊  {section}")
         paths = []
         for ident in tickers:
-            out = _safe_filename(section, ident)
+            # Get period index for filename uniqueness
+            pidx = _ticker_period_idx.get(ident, 0)
+            period_suffix = _PRICE_PERIODS[min(pidx, len(_PRICE_PERIODS) - 1)][0] if not ident.startswith("FRED:") else ""
+            out = _safe_filename(section, ident, period_suffix)
             chart_type = "FRED" if ident.startswith("FRED:") else "price"
             print(f"    → {ident} [{chart_type}] ... ", end="", flush=True)
             ok = make_chart(ident, out)
