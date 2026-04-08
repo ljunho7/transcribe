@@ -472,6 +472,22 @@ def assemble():
     generate_subtitles(manifest)
 
 
+def _fmt_srt_time(secs):
+    """Format seconds as SRT timestamp: HH:MM:SS,mmm"""
+    h = int(secs // 3600)
+    m = int((secs % 3600) // 60)
+    s = int(secs % 60)
+    ms = int((secs % 1) * 1000)
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+
+def _split_sentences(text):
+    """Split Korean text into sentences on common endings."""
+    # Split on sentence-ending patterns followed by space or newline
+    parts = re.split(r'(?<=[다요죠]\.)\s+|(?<=[다요죠])\s*\n', text)
+    return [s.strip() for s in parts if s.strip()]
+
+
 def generate_subtitles(manifest):
     """Generate SRT subtitle file from manifest audio durations."""
     srt_path = Path("temp/subtitles.srt")
@@ -485,11 +501,11 @@ def generate_subtitles(manifest):
     with open(script_file, "r", encoding="utf-8") as f:
         script = f.read()
 
-    # Parse sections for subtitle text
+    # Parse all sections including [뉴스] and [리서치]
+    TAGS = ["[시장개요]", "[뉴스]", "[리서치]", "[주요등락]", "[섹터분석]", "[국가별]"]
     section_texts = {}
     current_tag = None
     current_lines = []
-    TAGS = ["[시장개요]", "[뉴스]", "[리서치]", "[주요등락]", "[섹터분석]", "[국가별]"]
     for line in script.split("\n"):
         stripped = line.strip()
         if stripped in TAGS:
@@ -515,19 +531,11 @@ def generate_subtitles(manifest):
 
         dur = get_audio_duration(audio_path) if audio_path.exists() else 10.0
 
-        # Get subtitle text
-        if section == "[뉴스]":
-            # Find story text from script
-            sub_text = headline
-        else:
-            tag_name = section.replace("[", "").replace("]", "")
-            sub_text = tag_name
-
-        # Split into ~10-second subtitle chunks for readability
-        if section == "[뉴스]" and headline:
-            # Use headline as subtitle for the story
-            full_text = section_texts.get("[뉴스]", "")
-            # Find story body
+        # Get subtitle text for this clip
+        if section in ("[뉴스]", "[리서치]") and headline:
+            # Find story body from the section text
+            tag = section
+            full_text = section_texts.get(tag, "")
             story_text = ""
             chunks = [c.strip() for c in re.split(r'\n{2,}', full_text) if c.strip()]
             for chunk in chunks:
@@ -538,33 +546,29 @@ def generate_subtitles(manifest):
             if not story_text:
                 story_text = headline
         else:
-            story_text = section_texts.get(section, section)
+            # Fixed sections — use full section text
+            story_text = section_texts.get(section, "")
 
-        # Split text into subtitle segments (~80 chars each)
-        sentences = re.split(r'(?<=다\.)\s*|(?<=니다\.)\s*|(?<=습니다\.)\s*', story_text)
-        sentences = [s.strip() for s in sentences if s.strip()]
+        if not story_text:
+            # Skip empty sections
+            elapsed += dur
+            continue
 
+        # Split into sentences for readable subtitle chunks
+        sentences = _split_sentences(story_text)
         if not sentences:
-            sentences = [sub_text]
+            sentences = [story_text[:80]]
 
-        seg_dur = dur / len(sentences) if sentences else dur
+        seg_dur = dur / len(sentences)
 
         for sent in sentences:
             start = elapsed
             end = elapsed + seg_dur
-
-            def _fmt_time(secs):
-                h = int(secs // 3600)
-                m = int((secs % 3600) // 60)
-                s = int(secs % 60)
-                ms = int((secs % 1) * 1000)
-                return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
-
-            srt_entries.append(f"{idx}\n{_fmt_time(start)} --> {_fmt_time(end)}\n{sent}\n")
+            srt_entries.append(
+                f"{idx}\n{_fmt_srt_time(start)} --> {_fmt_srt_time(end)}\n{sent}\n"
+            )
             idx += 1
             elapsed += seg_dur
-
-        elapsed = elapsed  # continue accumulating
 
     with open(srt_path, "w", encoding="utf-8") as f:
         f.write("\n".join(srt_entries))
