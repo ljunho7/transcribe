@@ -356,8 +356,40 @@ Other rules:
         models=["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite-preview"]
     )
 
-    # ── Combine and save ──────────────────────────────────────────────────
-    korean_script = market_script + "\n\n" + news_script
+    # ── Combine and save (broadcast order: 시장개요 → 뉴스 → 주요등락 → 섹터분석 → 국가별)
+    # Extract individual sections from market_script
+    import re as _re
+    _sections = {}
+    _current_tag = None
+    _current_lines = []
+    _intro_lines = []  # lines before any section tag (opening greeting)
+    for line in market_script.split("\n"):
+        stripped = line.strip()
+        if stripped in ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]"]:
+            if _current_tag:
+                _sections[_current_tag] = "\n".join(_current_lines)
+            _current_tag = stripped
+            _current_lines = [line]
+        elif _current_tag:
+            _current_lines.append(line)
+        else:
+            _intro_lines.append(line)
+    if _current_tag:
+        _sections[_current_tag] = "\n".join(_current_lines)
+
+    # Reassemble in broadcast order
+    _intro = "\n".join(_intro_lines).strip()
+    _broadcast_order = ["[시장개요]", "[뉴스]", "[주요등락]", "[섹터분석]", "[국가별]"]
+    _parts = []
+    if _intro:
+        _parts.append(_intro)
+    for tag in _broadcast_order:
+        if tag == "[뉴스]":
+            _parts.append(news_script.strip())
+        elif tag in _sections:
+            _parts.append(_sections[tag].strip())
+
+    korean_script = "\n\n".join(_parts)
 
     os.makedirs("temp", exist_ok=True)
     with open("temp/korean_script.txt", "w", encoding="utf-8") as f:
