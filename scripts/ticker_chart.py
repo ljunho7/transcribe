@@ -182,14 +182,7 @@ def keyword_scan(text):
 
 def postprocess_tickers(section_data, sections):
     """Clean up Groq output: dedup, filter non-financial, remove fixed-section overlaps."""
-    # Collect tickers from fixed sections
     FIXED = {"시장개요", "주요등락", "섹터분석", "국가별"}
-    fixed_tickers = set()
-    for sec in FIXED:
-        for t in section_data.get(sec, {}).get("tickers", []):
-            fixed_tickers.add(t)
-
-    seen_tickers = set()
 
     for section, entry in section_data.items():
         if section in FIXED:
@@ -228,19 +221,7 @@ def postprocess_tickers(section_data, sections):
                 if t not in tickers:
                     tickers.append(t)
 
-        # 4. Remove only INDEX/ETF tickers that overlap with fixed sections.
-        #    Keep individual stocks (UNH, INTC, etc.) even if they appear in
-        #    주요등락 — they deserve their own chart when discussed in a news story.
-        index_like = {t for t in fixed_tickers if t.startswith("^") or t.startswith("SPY") or t.startswith("EW")}
-        tickers = [t for t in tickers if t not in index_like]
-
-        # 5. Deduplicate across news sections (first occurrence wins)
-        unique = []
-        for t in tickers:
-            if t not in seen_tickers:
-                unique.append(t)
-                seen_tickers.add(t)
-        tickers = unique
+        # No dedup — allow same ticker to appear in multiple stories
 
         if tickers != entry["tickers"]:
             print(f"    🔧 [{story_type}] {title[:30]}: {entry['tickers']} → {tickers}",
