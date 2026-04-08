@@ -36,8 +36,8 @@ SCRIPT_FILE = "temp/korean_script.txt"
 AUDIO_DIR   = Path("temp/audio")
 
 # Google Cloud TTS settings
-GOOGLE_VOICE = "ko-KR-Chirp3-HD-Zephyr"  # Chirp3-HD (best quality, LLM-powered)
-# Alternatives: ko-KR-Neural2-A (female), ko-KR-Neural2-B (male)
+GOOGLE_VOICE          = "ko-KR-Chirp3-HD-Zephyr"        # News/general sections
+GOOGLE_VOICE_RESEARCH = "ko-KR-Chirp3-HD-Zubenelgenubi"  # Research sections (different voice)
 GOOGLE_SPEED = 1.1  # slightly faster than default
 
 # Edge TTS settings (fallback)
@@ -274,15 +274,15 @@ def append_silence(audio_path, seconds):
             pass
 
 
-def _google_tts(text, path):
-    """Generate audio using Google Cloud WaveNet (premium quality)."""
+def _google_tts(text, path, voice_name=None):
+    """Generate audio using Google Cloud TTS (Chirp3-HD)."""
     from google.cloud import texttospeech
     client = texttospeech.TextToSpeechClient()
 
     synthesis_input = texttospeech.SynthesisInput(text=text)
     voice = texttospeech.VoiceSelectionParams(
         language_code="ko-KR",
-        name=GOOGLE_VOICE,
+        name=voice_name or GOOGLE_VOICE,
     )
     audio_config = texttospeech.AudioConfig(
         audio_encoding=texttospeech.AudioEncoding.MP3,
@@ -323,7 +323,7 @@ def _gtts_fallback(text, path):
         tmp.unlink()
 
 
-def tts_to_file(text, path, retries=3, pause=0):
+def tts_to_file(text, path, retries=3, pause=0, voice=None):
     """Generate TTS audio. Priority: Google Cloud → Edge TTS → gTTS."""
     text = normalize_for_tts(text.strip())
     if not text:
@@ -343,7 +343,7 @@ def tts_to_file(text, path, retries=3, pause=0):
         for attempt in range(1, retries + 1):
             try:
                 if engine_id == "google":
-                    _google_tts(text, path)
+                    _google_tts(text, path, voice_name=voice)
                 elif engine_id == "edge":
                     asyncio.run(_edge_tts(text, path))
                 else:
@@ -386,11 +386,12 @@ def generate_voice():
             stories = parse_news_stories(text)
             prefix = "05" if tag == "[뉴스]" else "06"
             label = "📰 [뉴스]" if tag == "[뉴스]" else "🔬 [리서치]"
+            section_voice = GOOGLE_VOICE_RESEARCH if tag == "[리서치]" else None
             print(f"\n{label}: {len(stories)} stories", flush=True)
             for j, story in enumerate(stories):
                 fname = AUDIO_DIR / f"{prefix}_story_{j+1:03d}.mp3"
                 full_text = story['text']  # skip reading headline aloud
-                ok = tts_to_file(full_text, fname, pause=PAUSE_STORY)
+                ok = tts_to_file(full_text, fname, pause=PAUSE_STORY, voice=section_voice)
                 if ok:
                     manifest.append({
                         "audio":    str(fname),
