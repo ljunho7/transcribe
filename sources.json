@@ -96,5 +96,12 @@
     "max_age_hours": 24,
     "priority": 14,
     "type": "research"
+  },
+  {
+    "name": "Research at Citi",
+    "rss": "http://www.kaltura.com/api_v3/getFeed.php?partnerId=2645261&feedId=1_ql5kimw7",
+    "max_age_hours": 24,
+    "priority": 15,
+    "type": "research"
   }
 ]
