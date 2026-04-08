@@ -287,29 +287,31 @@ TRANSCRIPT:
     if not summaries:
         raise ValueError("No summaries produced")
 
-    combined = ""
+    # ── Split summaries into news vs research ──────────────────────────────
+    # Load source types from sources.json
+    import json as _json
+    _source_types = {}
+    try:
+        with open("sources.json", "r", encoding="utf-8") as f:
+            for src in _json.load(f):
+                # Map filename stem to type (e.g. "WSJ_Whats_News" → "news")
+                _source_types[src["name"].replace(" ", "_").replace("'", "")] = src.get("type", "news")
+    except Exception:
+        pass
+
+    news_summaries = []
+    research_summaries = []
     for s in summaries:
-        combined += f"[출처: {s['source']}]\n{s['summary']}\n\n===\n\n"
-    print(f"\n  📦 Combined: {len(combined):,} chars from {len(summaries)} sources\n", flush=True)
+        source_type = _source_types.get(s["source"], "news")
+        if source_type == "research":
+            research_summaries.append(s)
+        else:
+            news_summaries.append(s)
 
-    # ── Call 2: Final news section — uses gemini-2.5-flash for reliable long output ──
-    print("[Gemini] Call 2: Final news section...", flush=True)
-    news_prompt = f"""You are a professional Korean financial broadcast journalist.
-Today is {today} (Korean Standard Time).
+    print(f"\n  📰 News sources: {len(news_summaries)}", flush=True)
+    print(f"  🔬 Research sources: {len(research_summaries)}", flush=True)
 
-Below are Korean translations from several financial podcasts. The same story may appear in multiple sources.
-
-Your task:
-1. Identify all unique news stories across all sources
-2. Where the same story appears in multiple sources, COMBINE them into one richer story
-3. Write the final broadcast script
-
-KOREAN TEXTS:
-{combined}
-
-Your response MUST start with this exact tag on its own line:
-[뉴스]
-
+    _STORY_FORMAT = """
 Then write each story in this EXACT format:
 
 소제목 (short Korean headline, under 20 chars)
@@ -318,34 +320,109 @@ Then write each story in this EXACT format:
 CRITICAL FORMATTING RULES:
 - Title and body must be on consecutive lines (single newline between them)
 - Stories must be separated by a BLANK LINE (double newline)
-- End with a single closing sentence starting with "지금까지"
-
-Example format:
-[뉴스]
-미국 증시 상승 마감
-이번 주 미국 증시는 3대 주요 지수 모두 상승세로 마감했습니다. 나스닥 지수가 4.4% 상승하며...
-
-트럼프 관세 정책 평가
-도널드 트럼프 대통령의 관세 정책이 시행 1년을 맞았습니다. 전문가들은...
-
-지금까지 오늘의 주요 경제 뉴스였습니다.
-
-Other rules:
-- Sort stories by importance
 - Korean only (company/person names in English OK)
 - No markdown, no bold, no numbering, no bullet points
 - Each story must be unique — never repeat the same topic
 - Once all unique stories are covered, STOP"""
 
-    print(f"  📦 Combined input: {len(combined):,} chars", flush=True)
+    _GEMINI_MODELS = ["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite-preview"]
 
-    news_script = call_gemini(
-        client, news_prompt,
-        required_tags=["[뉴스]"],
-        max_tokens=32768,
-        thinking=False,
-        models=["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite-preview"]
-    )
+    # ── Call 2a: News section ────────────────────────────────────────────
+    news_script = ""
+    if news_summaries:
+        news_combined = ""
+        for s in news_summaries:
+            news_combined += f"[출처: {s['source']}]\n{s['summary']}\n\n===\n\n"
+        print(f"\n[Gemini] Call 2a: News section ({len(news_combined):,} chars)...", flush=True)
+
+        news_prompt = f"""You are a professional Korean financial broadcast journalist.
+Today is {today} (Korean Standard Time).
+
+Below are Korean translations from several NEWS podcasts. The same story may appear in multiple sources.
+
+Your task:
+1. Identify all unique news stories across all sources
+2. Where the same story appears in multiple sources, COMBINE them into one richer story
+3. Sort stories by importance
+
+KOREAN TEXTS:
+{news_combined}
+
+Your response MUST start with this exact tag on its own line:
+[뉴스]
+{_STORY_FORMAT}"""
+
+        news_script = call_gemini(
+            client, news_prompt,
+            required_tags=["[뉴스]"],
+            max_tokens=32768,
+            thinking=False,
+            models=_GEMINI_MODELS
+        )
+
+    # ── Call 2b: Research/analysis section ────────────────────────────────
+    research_script = ""
+    if research_summaries:
+        research_combined = ""
+        for s in research_summaries:
+            research_combined += f"[출처: {s['source']}]\n{s['summary']}\n\n===\n\n"
+        print(f"\n[Gemini] Call 2b: Research section ({len(research_combined):,} chars)...", flush=True)
+
+        research_prompt = f"""You are a professional Korean financial broadcast journalist.
+Today is {today} (Korean Standard Time).
+
+Below are Korean translations from INVESTMENT RESEARCH podcasts (Morgan Stanley, Goldman Sachs, JP Morgan, Barclays).
+These contain in-depth market analysis, investment outlooks, and expert commentary.
+
+CRITICAL: Preserve as much detail as possible. These are expert insights that viewers value.
+Do NOT summarize or shorten — translate and organize faithfully.
+Keep specific data points, forecasts, analyst names, and reasoning.
+
+Your task:
+1. Organize each research piece as a separate story
+2. Preserve the depth and detail of each analysis
+3. Do NOT merge different analysts' views — keep them as separate stories
+
+KOREAN TEXTS:
+{research_combined}
+
+Your response MUST start with this exact tag on its own line:
+[리서치]
+{_STORY_FORMAT}"""
+
+        research_script = call_gemini(
+            client, research_prompt,
+            required_tags=["[리서치]"],
+            max_tokens=65536,
+            thinking=False,
+            models=_GEMINI_MODELS
+        )
+
+    # ── Combine news + research without summarizing ──────────────────────
+    combined_news = ""
+    if news_script:
+        combined_news = news_script.strip()
+    if research_script:
+        # Append research after news, replacing [리서치] with continuation under [뉴스]
+        research_body = research_script.replace("[리서치]", "").strip()
+        if combined_news:
+            # Remove "지금까지" closing from news section before appending research
+            lines = combined_news.split("\n")
+            filtered = [l for l in lines if not l.strip().startswith("지금까지")]
+            combined_news = "\n".join(filtered).strip()
+            combined_news += "\n\n" + research_body
+        else:
+            combined_news = "[뉴스]\n" + research_body
+
+    # Ensure closing sentence
+    if combined_news and "지금까지" not in combined_news:
+        combined_news += f"\n\n지금까지 {today} 주요 경제 뉴스였습니다."
+
+    # Ensure [뉴스] tag exists
+    if combined_news and "[뉴스]" not in combined_news:
+        combined_news = "[뉴스]\n" + combined_news
+
+    news_script = combined_news
 
     # ── Combine and save (broadcast order: 시장개요 → 뉴스 → 주요등락 → 섹터분석 → 국가별)
     # Extract individual sections from market_script
