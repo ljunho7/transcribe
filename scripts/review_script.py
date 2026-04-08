@@ -156,10 +156,18 @@ Review the script and return a CORRECTED version. Fix ONLY these issues:
    - Remove ONLY clear advertisements — sponsor messages, product promotions, URLs
    - Do NOT remove actual news content even if it mentions a company
 
-7. FORMAT PRESERVATION (CRITICAL)
+7. [리서치] SECTION — DO NOT TOUCH
+   - The [리서치] section contains expert analysis from investment banks
+     (Morgan Stanley, Goldman Sachs, JP Morgan, Barclays)
+   - Do NOT edit, rephrase, shorten, or restructure [리서치] content
+   - Preserve all analyst names, data points, forecasts, and reasoning
+   - Only fix obvious typos or remove clear advertisements
+   - The research tone is intentionally different from news — keep it as-is
+
+8. FORMAT PRESERVATION (CRITICAL)
    - Keep ALL section tags exactly as they are: [시장개요], [뉴스], [리서치], [주요등락], [섹터분석], [국가별]
-   - In [뉴스], each story must remain: headline on one line, body on next line(s),
-     separated from other stories by a blank line
+   - In [뉴스] and [리서치], each story must remain: headline on one line,
+     body on next line(s), separated from other stories by a blank line
    - Do NOT merge, combine, or remove stories
    - Do NOT shorten story bodies — preserve all facts, quotes, and numbers
 
