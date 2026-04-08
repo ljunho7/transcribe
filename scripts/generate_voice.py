@@ -3,31 +3,50 @@ Step 4: Split Korean script by section and generate one MP3 per section/story.
 Output: temp/audio/01_시장개요.mp3, 02_주요등락.mp3, ..., 05_story_001.mp3, etc.
 """
 
-import asyncio, os, re, time, subprocess
+import asyncio, json, os, re, time, subprocess
 from pathlib import Path
 
-# Edge TTS — free neural Korean voices, no API key needed
-try:
-    import edge_tts
-    TTS_ENGINE = "edge"
-except ImportError:
+# TTS engine priority: Google Cloud WaveNet → Edge TTS → gTTS
+GOOGLE_TTS_KEY_JSON = os.environ.get("GOOGLE_TTS_KEY", "")
+TTS_ENGINE = "edge"  # default fallback
+
+if GOOGLE_TTS_KEY_JSON:
     try:
-        from gtts import gTTS
-        TTS_ENGINE = "gtts"
+        from google.cloud import texttospeech
+        # Write service account key to temp file for auth
+        _key_path = Path("temp/_gcloud_tts_key.json")
+        os.makedirs("temp", exist_ok=True)
+        _key_path.write_text(GOOGLE_TTS_KEY_JSON)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(_key_path.resolve())
+        TTS_ENGINE = "google"
+        print("🔊 TTS engine: Google Cloud WaveNet", flush=True)
     except ImportError:
-        raise ImportError("Install edge-tts or gTTS: pip install edge-tts")
+        print("⚠️  google-cloud-texttospeech not installed — falling back to Edge TTS", flush=True)
+
+if TTS_ENGINE != "google":
+    try:
+        import edge_tts
+        TTS_ENGINE = "edge"
+        print("🔊 TTS engine: Edge TTS (fallback)", flush=True)
+    except ImportError:
+        TTS_ENGINE = "gtts"
+        print("🔊 TTS engine: gTTS (last resort)", flush=True)
 
 SCRIPT_FILE = "temp/korean_script.txt"
 AUDIO_DIR   = Path("temp/audio")
 
-# Edge TTS voice — ko-KR-SunHiNeural (female, news anchor style)
-# Alternative: ko-KR-InJoonNeural (male)
-EDGE_VOICE  = "ko-KR-SunHiNeural"
-EDGE_RATE   = "+10%"   # slightly faster than default (natural news pace)
+# Google Cloud TTS settings
+GOOGLE_VOICE = "ko-KR-Wavenet-A"  # Female WaveNet (premium quality)
+# Alternatives: ko-KR-Wavenet-B (male), ko-KR-Wavenet-C (female), ko-KR-Wavenet-D (male)
+GOOGLE_SPEED = 1.1  # slightly faster than default
 
-# gTTS fallback settings
-GTTS_LANG   = "ko"
-GTTS_SPEED  = 1.5      # playback speed multiplier for gTTS only
+# Edge TTS settings (fallback)
+EDGE_VOICE = "ko-KR-SunHiNeural"
+EDGE_RATE  = "+10%"
+
+# gTTS settings (last resort)
+GTTS_LANG  = "ko"
+GTTS_SPEED = 1.5
 
 PAUSE_SECTION = 1.5  # seconds of silence between market sections
 PAUSE_STORY   = 1.0  # seconds of silence between news stories
@@ -255,6 +274,32 @@ def append_silence(audio_path, seconds):
             pass
 
 
+def _google_tts(text, path):
+    """Generate audio using Google Cloud WaveNet (premium quality)."""
+    from google.cloud import texttospeech
+    client = texttospeech.TextToSpeechClient()
+
+    synthesis_input = texttospeech.SynthesisInput(text=text)
+    voice = texttospeech.VoiceSelectionParams(
+        language_code="ko-KR",
+        name=GOOGLE_VOICE,
+    )
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding=texttospeech.AudioEncoding.MP3,
+        speaking_rate=GOOGLE_SPEED,
+        pitch=0.0,
+    )
+
+    response = client.synthesize_speech(
+        input=synthesis_input,
+        voice=voice,
+        audio_config=audio_config,
+    )
+
+    with open(str(path), "wb") as f:
+        f.write(response.audio_content)
+
+
 async def _edge_tts(text, path):
     """Generate audio using Edge TTS (neural voice)."""
     communicate = edge_tts.Communicate(text, EDGE_VOICE, rate=EDGE_RATE)
@@ -266,7 +311,6 @@ def _gtts_fallback(text, path):
     from gtts import gTTS
     tts = gTTS(text=text, lang=GTTS_LANG, slow=False)
     tts.save(str(path))
-    # Speed up gTTS output (it's slow by default)
     if GTTS_SPEED != 1.0:
         tmp = path.with_suffix(".tmp.mp3")
         path.rename(tmp)
@@ -280,45 +324,44 @@ def _gtts_fallback(text, path):
 
 
 def tts_to_file(text, path, retries=3, pause=0):
-    """Generate TTS audio with retry and optional trailing pause.
-    Uses Edge TTS (neural) with gTTS as fallback."""
+    """Generate TTS audio. Priority: Google Cloud → Edge TTS → gTTS."""
     text = normalize_for_tts(text.strip())
     if not text:
         print(f"  ⚠️  Empty text for {path.name}, skipping", flush=True)
         return False
 
-    for attempt in range(1, retries+1):
-        try:
-            if TTS_ENGINE == "edge":
-                asyncio.run(_edge_tts(text, path))
-                engine_label = f"Edge/{EDGE_VOICE}"
-            else:
-                _gtts_fallback(text, path)
-                engine_label = f"gTTS/{GTTS_SPEED}x"
+    # Try engines in priority order
+    engines = []
+    if TTS_ENGINE == "google":
+        engines = [("google", "Google WaveNet"), ("edge", "Edge TTS"), ("gtts", "gTTS")]
+    elif TTS_ENGINE == "edge":
+        engines = [("edge", "Edge TTS"), ("gtts", "gTTS")]
+    else:
+        engines = [("gtts", "gTTS")]
 
-            if pause > 0:
-                append_silence(path, pause)
-            size = path.stat().st_size
-            print(f"  ✅ {path.name}  ({len(text):,} chars, {size:,} bytes, {engine_label}"
-                  f"{f', +{pause}s pause' if pause else ''})", flush=True)
-            return True
-        except Exception as e:
-            print(f"  ⚠️  TTS attempt {attempt} failed ({TTS_ENGINE}): {e}", flush=True)
-            # If Edge TTS fails, try gTTS fallback on last attempt
-            if attempt == retries and TTS_ENGINE == "edge":
-                try:
-                    print(f"  ↪ Falling back to gTTS...", flush=True)
+    for engine_id, engine_label in engines:
+        for attempt in range(1, retries + 1):
+            try:
+                if engine_id == "google":
+                    _google_tts(text, path)
+                elif engine_id == "edge":
+                    asyncio.run(_edge_tts(text, path))
+                else:
                     _gtts_fallback(text, path)
-                    if pause > 0:
-                        append_silence(path, pause)
-                    size = path.stat().st_size
-                    print(f"  ✅ {path.name}  ({len(text):,} chars, {size:,} bytes, gTTS fallback"
-                          f"{f', +{pause}s pause' if pause else ''})", flush=True)
-                    return True
-                except Exception as e2:
-                    print(f"  ⚠️  gTTS fallback also failed: {e2}", flush=True)
-            if attempt < retries:
-                time.sleep(5)
+
+                if pause > 0:
+                    append_silence(path, pause)
+                size = path.stat().st_size
+                print(f"  ✅ {path.name}  ({len(text):,} chars, {size:,} bytes, {engine_label}"
+                      f"{f', +{pause}s pause' if pause else ''})", flush=True)
+                return True
+            except Exception as e:
+                print(f"  ⚠️  {engine_label} attempt {attempt} failed: {e}", flush=True)
+                if attempt < retries:
+                    time.sleep(3)
+        print(f"  ↪ {engine_label} failed — trying next engine...", flush=True)
+
+    print(f"  ❌ All TTS engines failed for {path.name}", flush=True)
     return False
 
 
