@@ -259,23 +259,21 @@ def parse_sections(text):
         if m:
             sections[tag] = m.group(1).strip()
 
-    m = re.search(r'\[뉴스\](.*?)(?=\Z)', text, re.DOTALL)
-    if m:
-        news_block = m.group(1).strip()
-        # Stories are separated by blank lines (double newline).
-        # Within each story, title and body are on consecutive lines (single newline).
-        chunks = [c.strip() for c in re.split(r'\n{2,}', news_block) if c.strip()]
-        for chunk in chunks:
-            lines = chunk.split('\n', 1)
-            title = lines[0].strip()
-            body  = lines[1].strip() if len(lines) > 1 else ""
-            # Skip closing remarks
-            if title.startswith('오늘 준비한') or title.startswith('지금까지'):
-                break
-            # Skip chunks with no body (single-line fragments)
-            if not body:
-                continue
-            sections[f'뉴스: {title}'] = body
+    # Parse [뉴스] and [리서치] sections — same format (headline + body stories)
+    for section_tag, prefix in [("뉴스", "뉴스"), ("리서치", "리서치")]:
+        m = re.search(rf'\[{section_tag}\](.*?)(?=\[|\Z)', text, re.DOTALL)
+        if m:
+            block = m.group(1).strip()
+            chunks = [c.strip() for c in re.split(r'\n{2,}', block) if c.strip()]
+            for chunk in chunks:
+                lines = chunk.split('\n', 1)
+                title = lines[0].strip()
+                body  = lines[1].strip() if len(lines) > 1 else ""
+                if title.startswith('오늘 준비한') or title.startswith('지금까지'):
+                    break
+                if not body:
+                    continue
+                sections[f'{prefix}: {title}'] = body
 
     return sections
 

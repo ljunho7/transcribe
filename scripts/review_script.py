@@ -157,7 +157,7 @@ Review the script and return a CORRECTED version. Fix ONLY these issues:
    - Do NOT remove actual news content even if it mentions a company
 
 7. FORMAT PRESERVATION (CRITICAL)
-   - Keep ALL section tags exactly as they are: [시장개요], [주요등락], [섹터분석], [국가별], [뉴스]
+   - Keep ALL section tags exactly as they are: [시장개요], [뉴스], [리서치], [주요등락], [섹터분석], [국가별]
    - In [뉴스], each story must remain: headline on one line, body on next line(s),
      separated from other stories by a blank line
    - Do NOT merge, combine, or remove stories
@@ -275,7 +275,8 @@ def review_script(gemini_client):
                             min_chars=int(len(original) * 0.4))
 
     # Validate that section tags are preserved
-    required_tags = ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
+    required_tags = ["[시장개요]", "[뉴스]", "[주요등락]", "[섹터분석]", "[국가별]"]
+    # [리서치] is optional — may not exist if no research sources available
     missing = [t for t in required_tags if t not in corrected]
     if missing:
         print(f"  ⚠️  Corrected script missing tags: {missing} — keeping original", flush=True)

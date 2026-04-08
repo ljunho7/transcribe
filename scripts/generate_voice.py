@@ -170,13 +170,14 @@ def normalize_for_tts(text):
 
     return text
 
-SECTION_ORDER = ["[시장개요]", "[뉴스]", "[주요등락]", "[섹터분석]", "[국가별]"]
+SECTION_ORDER = ["[시장개요]", "[뉴스]", "[리서치]", "[주요등락]", "[섹터분석]", "[국가별]"]
 SECTION_NAMES = {
     "[시장개요]": "시장개요",
     "[주요등락]": "주요등락",
     "[섹터분석]": "섹터분석",
     "[국가별]":   "국가별",
     "[뉴스]":     "뉴스",
+    "[리서치]":   "리서치",
 }
 
 
@@ -337,17 +338,19 @@ def generate_voice():
             print(f"  ⚠️  Missing section: {tag}", flush=True)
             continue
 
-        if tag == "[뉴스]":
+        if tag in ("[뉴스]", "[리서치]"):
             stories = parse_news_stories(text)
-            print(f"\n📰 [뉴스]: {len(stories)} stories", flush=True)
+            prefix = "05" if tag == "[뉴스]" else "06"
+            label = "📰 [뉴스]" if tag == "[뉴스]" else "🔬 [리서치]"
+            print(f"\n{label}: {len(stories)} stories", flush=True)
             for j, story in enumerate(stories):
-                fname = AUDIO_DIR / f"05_story_{j+1:03d}.mp3"
+                fname = AUDIO_DIR / f"{prefix}_story_{j+1:03d}.mp3"
                 full_text = f"{story['headline']}\n{story['text']}"
                 ok = tts_to_file(full_text, fname, pause=PAUSE_STORY)
                 if ok:
                     manifest.append({
                         "audio":    str(fname),
-                        "section":  "[뉴스]",
+                        "section":  tag,
                         "headline": story["headline"],
                     })
         else:

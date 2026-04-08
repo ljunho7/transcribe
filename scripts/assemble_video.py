@@ -370,7 +370,7 @@ def assemble():
             draw_fb.line([(0, y), (W - LEFT_W, y)],
                          fill=(int(8+10*t), int(12+15*t), int(22+30*t)))
 
-    total_stories = sum(1 for m in manifest if m["section"] == "[뉴스]")
+    total_stories = sum(1 for m in manifest if m["section"] in ("[뉴스]", "[리서치]"))
     story_idx = 0
 
     clip_paths = []
@@ -382,11 +382,12 @@ def assemble():
 
         print(f"\n  [{i+1}/{len(manifest)}] {audio.name}", flush=True)
 
-        if section == "[뉴스]":
+        if section in ("[뉴스]", "[리서치]"):
             # Look up charts + bullets from ticker_chart output.
             # Keys in ticker_map.json may include body text after the headline,
             # so use prefix matching instead of exact key lookup.
-            section_key = f"뉴스: {headline}"
+            tag_prefix = "리서치" if section == "[리서치]" else "뉴스"
+            section_key = f"{tag_prefix}: {headline}"
             sd_entry = section_data.get(section_key, {})
             if not sd_entry:
                 for k, v in section_data.items():
@@ -488,7 +489,7 @@ def generate_subtitles(manifest):
     section_texts = {}
     current_tag = None
     current_lines = []
-    TAGS = ["[시장개요]", "[뉴스]", "[주요등락]", "[섹터분석]", "[국가별]"]
+    TAGS = ["[시장개요]", "[뉴스]", "[리서치]", "[주요등락]", "[섹터분석]", "[국가별]"]
     for line in script.split("\n"):
         stripped = line.strip()
         if stripped in TAGS:

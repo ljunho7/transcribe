@@ -398,39 +398,23 @@ Your response MUST start with this exact tag on its own line:
             models=_GEMINI_MODELS
         )
 
-    # ── Combine news + research without summarizing ──────────────────────
-    combined_news = ""
+    # ── Clean up closing sentences from news/research (will add one at the end)
+    def _strip_closing(text):
+        lines = text.split("\n")
+        return "\n".join(l for l in lines if not l.strip().startswith("지금까지")).strip()
+
     if news_script:
-        combined_news = news_script.strip()
+        news_script = _strip_closing(news_script)
     if research_script:
-        # Append research after news, replacing [리서치] with continuation under [뉴스]
-        research_body = research_script.replace("[리서치]", "").strip()
-        if combined_news:
-            # Remove "지금까지" closing from news section before appending research
-            lines = combined_news.split("\n")
-            filtered = [l for l in lines if not l.strip().startswith("지금까지")]
-            combined_news = "\n".join(filtered).strip()
-            combined_news += "\n\n" + research_body
-        else:
-            combined_news = "[뉴스]\n" + research_body
+        research_script = _strip_closing(research_script)
 
-    # Ensure closing sentence
-    if combined_news and "지금까지" not in combined_news:
-        combined_news += f"\n\n지금까지 {today} 주요 경제 뉴스였습니다."
-
-    # Ensure [뉴스] tag exists
-    if combined_news and "[뉴스]" not in combined_news:
-        combined_news = "[뉴스]\n" + combined_news
-
-    news_script = combined_news
-
-    # ── Combine and save (broadcast order: 시장개요 → 뉴스 → 주요등락 → 섹터분석 → 국가별)
-    # Extract individual sections from market_script
+    # ── Combine and save ─────────────────────────────────────────────────
+    # Broadcast order: 시장개요 → 뉴스 → 리서치 → 주요등락 → 섹터분석 → 국가별 → 마감
     import re as _re
     _sections = {}
     _current_tag = None
     _current_lines = []
-    _intro_lines = []  # lines before any section tag (opening greeting)
+    _intro_lines = []
     for line in market_script.split("\n"):
         stripped = line.strip()
         if stripped in ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]"]:
@@ -445,17 +429,21 @@ Your response MUST start with this exact tag on its own line:
     if _current_tag:
         _sections[_current_tag] = "\n".join(_current_lines)
 
-    # Reassemble in broadcast order
     _intro = "\n".join(_intro_lines).strip()
-    _broadcast_order = ["[시장개요]", "[뉴스]", "[주요등락]", "[섹터분석]", "[국가별]"]
+    _broadcast_order = ["[시장개요]", "[뉴스]", "[리서치]", "[주요등락]", "[섹터분석]", "[국가별]"]
     _parts = []
     if _intro:
         _parts.append(_intro)
     for tag in _broadcast_order:
-        if tag == "[뉴스]":
+        if tag == "[뉴스]" and news_script:
             _parts.append(news_script.strip())
+        elif tag == "[리서치]" and research_script:
+            _parts.append(research_script.strip())
         elif tag in _sections:
             _parts.append(_sections[tag].strip())
+
+    # Add closing sentence after all sections
+    _parts.append(f"지금까지 {today} 주요 경제 뉴스였습니다.")
 
     korean_script = "\n\n".join(_parts)
 
