@@ -82,5 +82,12 @@
     "max_age_hours": 24,
     "priority": 12,
     "type": "research"
+  },
+  {
+    "name": "Barclays The Flip Side",
+    "rss": "https://feeds.captivate.fm/barclaysib/",
+    "max_age_hours": 24,
+    "priority": 13,
+    "type": "research"
   }
 ]
