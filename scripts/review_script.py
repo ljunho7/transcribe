@@ -124,27 +124,28 @@ SCRIPT_REVIEW_PROMPT = """\
 You are a senior Korean broadcast news editor reviewing a script before it goes
 to the voice recording booth. This script will be read aloud by a news anchor.
 
-Review the script and return a CORRECTED version. Fix these issues:
+CRITICAL: This is an EDITING task, NOT a summarization task.
+Preserve the overall length and detail of each story. Do NOT shorten,
+compress, or summarize stories. Only make targeted fixes to specific issues.
+The corrected script should be roughly the SAME LENGTH as the original.
 
-1. REPETITION
-   - Remove sentences/facts that appear more than once across different stories
-   - Remove redundant restatements within the same story
-   - If two stories overlap significantly, merge the duplicate content into one
+Review the script and return a CORRECTED version. Fix ONLY these issues:
 
-2. BROADCAST NATURALNESS
-   - The text must sound natural when read aloud by a Korean news anchor
-   - Replace stiff written-language patterns with spoken-language equivalents
+1. REPETITION (remove only truly duplicated content)
+   - Remove sentences/facts that are EXACTLY repeated across different stories
+   - Do NOT remove similar-but-different coverage of the same topic
+   - Do NOT merge stories — keep each story as a separate entry
+
+2. BROADCAST NATURALNESS (light touch only)
+   - Fix only clearly unnatural phrasing — do not rewrite entire sentences
    - Ensure smooth flow between sentences — no abrupt topic jumps
-   - Headlines (소제목) should NOT be read aloud; the body should begin naturally
-     and incorporate the topic without literally stating the headline
+   - Headlines (소제목) must remain as separate lines — do NOT merge them into body
 
 3. TRANSITIONS
    - Remove unnecessary filler transitions like "다음 뉴스입니다"
-   - Each story should stand on its own without explicit segue phrases
 
 4. DATA CONSISTENCY
    - If the same statistic appears in different stories, ensure the numbers match
-   - Flag any obviously wrong numbers (e.g. "S&P 500이 50% 상승" for a weekly return)
 
 5. OPENING & CLOSING
    - The opening line should be a natural greeting with date
@@ -152,21 +153,15 @@ Review the script and return a CORRECTED version. Fix these issues:
    - Do NOT add or change the section tags ([시장개요], [뉴스], etc.)
 
 6. ADVERTISEMENT REMOVAL
-   - Remove ANY translated sponsor messages, product promotions, or service pitches
-   - Remove podcast app promotions, subscription pitches, website URLs
-   - Common ad patterns to remove:
-     * "~의 지원/후원을 받습니다", "~에서 제공합니다"
-     * Company pitches (IBM, Chase, Hartford, Odoo, TrueStage, CARE, etc.)
-     * "~에서 자세히 알아보세요", "~를 방문하세요", "~닷컴"
-     * Credit score services, insurance products, business software ads
-     * "쇼 노트의 링크를 사용하여" or similar podcast self-references
-   - If an entire story is just an ad, remove the story completely
+   - Remove ONLY clear advertisements — sponsor messages, product promotions, URLs
+   - Do NOT remove actual news content even if it mentions a company
 
 7. FORMAT PRESERVATION (CRITICAL)
    - Keep ALL section tags exactly as they are: [시장개요], [주요등락], [섹터분석], [국가별], [뉴스]
    - In [뉴스], each story must remain: headline on one line, body on next line(s),
      separated from other stories by a blank line
-   - Do NOT merge stories that cover genuinely different topics
+   - Do NOT merge, combine, or remove stories
+   - Do NOT shorten story bodies — preserve all facts, quotes, and numbers
 
 Return ONLY the corrected script. No commentary, no markdown, no explanation.
 
