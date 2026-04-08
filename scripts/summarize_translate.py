@@ -28,41 +28,43 @@ MAX_CHARS_PER_TRANSCRIPT = 20000  # truncate each podcast before translating
 # ── Post-translation ad filtering ────────────────────────────────────────────
 import re as _re
 
-_AD_PATTERNS = [
-    _re.compile(r'.*에서 자세히 알아보.*'),
-    _re.compile(r'.*를 방문하세요.*'),
-    _re.compile(r'.*닷컴.*에서.*시작하세요.*'),
-    _re.compile(r'.*의 지원을 받습니다.*'),
-    _re.compile(r'.*의 후원.*받습니다.*'),
-    _re.compile(r'.*에서 제공합니다.*'),
-    _re.compile(r'.*무료로 사용해 보세요.*'),
-    _re.compile(r'.*무료로 시도해.*'),
-    _re.compile(r'.*(thehartford|truestage|odoo|care\.org|vantagecore).*', _re.IGNORECASE),
-    _re.compile(r'.*구독.*평가.*리뷰.*'),
-    _re.compile(r'.*쇼 노트의 링크.*'),
-    _re.compile(r'.*팟캐스트.*구독.*'),
-    _re.compile(r'.*앱을 다운로드.*'),
-    _re.compile(r'.*코드를 사용하.*'),
-    _re.compile(r'.*프로모션 코드.*'),
-    _re.compile(r'.*후원사.*'),
-    _re.compile(r'.*광고.*메시지.*'),
+# Ad patterns — match short ad sentences, not entire paragraphs.
+# These are searched within the text, not matched against whole lines.
+_AD_PHRASES = [
+    "에서 자세히 알아보세요",
+    "를 방문하세요",
+    "에서 무료로 사용해 보세요",
+    "에서 무료로 시도해",
+    "의 지원을 받습니다",
+    "의 후원을 받습니다",
+    "에서 제공합니다",
+    "쇼 노트의 링크를 사용하여",
+    "앱을 다운로드",
+    "프로모션 코드",
+    "thehartford.com",
+    "truestage.com",
+    "odoo.com",
+    "care.org",
 ]
 
 
 def filter_ads(text):
-    """Remove lines matching common Korean ad patterns from translated text."""
-    lines = text.split('\n')
+    """Remove sentences containing ad phrases from translated text.
+    Works on sentence level, not line level, to avoid wiping entire paragraphs."""
+    # Split into sentences (Korean sentences end with 다. 요. 습니다. etc.)
+    sentences = _re.split(r'(?<=다\.)\s*|(?<=요\.)\s*|(?<=세요\.)\s*|(?<=니다\.)\s*', text)
     filtered = []
     removed = 0
-    for line in lines:
-        stripped = line.strip()
-        if any(p.match(stripped) for p in _AD_PATTERNS):
+    for sent in sentences:
+        if not sent.strip():
+            continue
+        if any(phrase in sent for phrase in _AD_PHRASES):
             removed += 1
             continue
-        filtered.append(line)
+        filtered.append(sent)
     if removed:
-        print(f"    🚫 Removed {removed} ad line(s)", flush=True)
-    return '\n'.join(filtered)
+        print(f"    🚫 Removed {removed} ad sentence(s)", flush=True)
+    return ' '.join(filtered)
 
 
 def load_market_data():
