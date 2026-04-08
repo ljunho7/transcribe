@@ -170,7 +170,7 @@ def normalize_for_tts(text):
 
     return text
 
-SECTION_ORDER = ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
+SECTION_ORDER = ["[시장개요]", "[뉴스]", "[주요등락]", "[섹터분석]", "[국가별]"]
 SECTION_NAMES = {
     "[시장개요]": "시장개요",
     "[주요등락]": "주요등락",

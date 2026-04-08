@@ -488,7 +488,7 @@ def generate_subtitles(manifest):
     section_texts = {}
     current_tag = None
     current_lines = []
-    TAGS = ["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]", "[뉴스]"]
+    TAGS = ["[시장개요]", "[뉴스]", "[주요등락]", "[섹터분석]", "[국가별]"]
     for line in script.split("\n"):
         stripped = line.strip()
         if stripped in TAGS:
