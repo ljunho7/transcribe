@@ -204,6 +204,41 @@ def make_bullets_panel(headline, bullets):
     return panel
 
 
+def draw_progress_overlay(img, clip_idx, total_clips, section_label):
+    """Draw a progress bar and section label at the bottom of any frame."""
+    draw = ImageDraw.Draw(img)
+    try:
+        f_label = ImageFont.truetype(KO_REG, 18)
+    except Exception:
+        f_label = ImageFont.load_default()
+
+    bar_y = H - 28
+    bar_h = 4
+    margin = 0
+
+    # Dark semi-transparent strip at the bottom
+    draw.rectangle([(0, H - 36), (W, H)], fill=(5, 8, 16))
+
+    # Progress bar background
+    draw.rectangle([(margin, bar_y), (W - margin, bar_y + bar_h)], fill=(25, 35, 55))
+
+    # Progress bar fill
+    progress = (clip_idx + 1) / max(total_clips, 1)
+    fill_w = int((W - margin * 2) * progress)
+    draw.rectangle([(margin, bar_y), (margin + fill_w, bar_y + bar_h)], fill=GREEN)
+
+    # Section label on left
+    draw.text((12, H - 24), section_label, font=f_label, fill=WHITE_DIM)
+
+    # Clip counter on right
+    counter = f"{clip_idx + 1}/{total_clips}"
+    bbox = draw.textbbox((0, 0), counter, font=f_label)
+    cw = bbox[2] - bbox[0]
+    draw.text((W - cw - 12, H - 24), counter, font=f_label, fill=(80, 95, 125))
+
+    return img
+
+
 def make_news_chart_frame(chart_path, bullets_panel):
     """
     Composite frame: chart resized to LEFT_W x H on left,
@@ -372,7 +407,20 @@ def assemble():
                          fill=(int(8+10*t), int(12+15*t), int(22+30*t)))
 
     total_stories = sum(1 for m in manifest if m["section"] in ("[뉴스]", "[리서치]"))
+    total_clips = len(manifest)
     story_idx = 0
+    news_idx = 0
+    research_idx = 0
+    news_count = sum(1 for m in manifest if m["section"] == "[뉴스]")
+    research_count = sum(1 for m in manifest if m["section"] == "[리서치]")
+
+    SECTION_LABEL_KO = {
+        "[시장개요]": "시장개요",
+        "[주요등락]": "주요 등락",
+        "[섹터분석]": "섹터 분석",
+        "[국가별]":   "국가별 동향",
+        "[경제일정]": "경제 일정",
+    }
 
     clip_paths = []
     for i, entry in enumerate(manifest):
@@ -384,9 +432,15 @@ def assemble():
         print(f"\n  [{i+1}/{len(manifest)}] {audio.name}", flush=True)
 
         if section in ("[뉴스]", "[리서치]"):
+            # Build section label with counter
+            if section == "[뉴스]":
+                news_idx += 1
+                progress_label = f"뉴스 {news_idx}/{news_count}"
+            else:
+                research_idx += 1
+                progress_label = f"리서치 {research_idx}/{research_count}"
+
             # Look up charts + bullets from ticker_chart output.
-            # Keys in ticker_map.json may include body text after the headline,
-            # so use prefix matching instead of exact key lookup.
             tag_prefix = "리서치" if section == "[리서치]" else "뉴스"
             section_key = f"{tag_prefix}: {headline}"
             sd_entry = section_data.get(section_key, {})
@@ -405,6 +459,7 @@ def assemble():
                 frame_paths   = []
                 for ci, chart_path in enumerate(charts):
                     frame = make_news_chart_frame(chart_path, bullets_panel)
+                    draw_progress_overlay(frame, i, total_clips, progress_label)
                     fp    = CLIPS_DIR / f"frame_{i+1:03d}_{ci+1}.jpg"
                     frame.save(str(fp), "JPEG", quality=92)
                     frame_paths.append(fp)
@@ -414,6 +469,7 @@ def assemble():
                 print(f"    📝 No charts, {len(bullets)} bullet(s) — using bullets layout", flush=True)
                 bullets_panel = make_bullets_panel(headline, bullets)
                 frame = make_news_chart_frame(None, bullets_panel)
+                draw_progress_overlay(frame, i, total_clips, progress_label)
                 frame_path = CLIPS_DIR / f"frame_{i+1:03d}.jpg"
                 frame.save(str(frame_path), "JPEG", quality=92)
                 ok = image_to_clip(frame_path, audio, clip_path)
@@ -422,19 +478,27 @@ def assemble():
                 print(f"    ⚠️  No charts or bullets — using story card fallback", flush=True)
                 frame_path = CLIPS_DIR / f"frame_{i+1:03d}.jpg"
                 frame = make_story_frame(headline, story_idx, total_stories, right_bg)
+                draw_progress_overlay(frame, i, total_clips, progress_label)
                 frame.save(str(frame_path), "JPEG", quality=92)
                 ok = image_to_clip(frame_path, audio, clip_path)
 
             story_idx += 1
 
         else:
+            progress_label = SECTION_LABEL_KO.get(section, section.strip("[]"))
             image_path = IMAGES.get(section, "assets/background.jpg")
             if not os.path.exists(str(image_path)):
                 print(f"  ⚠️  Image not found: {image_path}, using dark fallback", flush=True)
                 fallback = Image.new("RGB", (W, H), DARK)
                 image_path = CLIPS_DIR / f"fallback_{i+1:03d}.jpg"
                 fallback.save(str(image_path))
-            ok = image_to_clip(image_path, audio, clip_path)
+            # Add progress overlay to fixed section image
+            frame = Image.open(str(image_path)).convert("RGB")
+            frame = frame.resize((W, H), Image.LANCZOS)
+            draw_progress_overlay(frame, i, total_clips, progress_label)
+            overlay_path = CLIPS_DIR / f"frame_{i+1:03d}_overlay.jpg"
+            frame.save(str(overlay_path), "JPEG", quality=92)
+            ok = image_to_clip(overlay_path, audio, clip_path)
 
         if ok:
             size_mb = clip_path.stat().st_size / 1e6
