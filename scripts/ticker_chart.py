@@ -352,12 +352,13 @@ Ticker rules:
     return empty tickers []
 
 ──────────────────────────────────────────
-BULLETS — Korean bullet points for 뉴스: sections only:
+BULLETS — Korean bullet points:
+  - ALWAYS generate bullets for EVERY 뉴스: and 리서치: section, even if tickers are empty
   - Follow the [MAX M bullets] limit specified in each section's text
   - Use FEWER bullets if the story has fewer key facts
   - Each bullet: short Korean phrase, 20 characters or fewer
   - No bullet character — just the text (it will be added in rendering)
-  - For non-뉴스 sections: always use empty array []
+  - For 시장개요/주요등락/섹터분석/국가별: always use empty array []
 
 ──────────────────────────────────────────
 Output format example:
