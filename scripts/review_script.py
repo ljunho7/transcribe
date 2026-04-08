@@ -373,8 +373,78 @@ def review_bullets(gpt_client):
     return True
 
 
+RESEARCH_JARGON_PROMPT = """\
+You are a Korean financial education editor. Your job is to make investment
+research accessible to general Korean investors who are NOT finance professionals.
+
+Below is the [리서치] section from a Korean financial broadcast script.
+For EACH sentence that contains technical jargon or complex financial terms:
+
+1. Keep the original sentence EXACTLY as-is
+2. Immediately after it, add a line starting with "→ 쉽게 말해," that:
+   a. Briefly defines any jargon terms in that sentence
+   b. Re-explains the sentence in plain, everyday Korean
+
+Example:
+ORIGINAL: 사모 대출 시장이 리테일 기구의 환매 제한과 기초 자산의 실적 변화라는 두 가지 도전에 직면했다고 분석했습니다.
+OUTPUT:
+사모 대출 시장이 리테일 기구의 환매 제한과 기초 자산의 실적 변화라는 두 가지 도전에 직면했다고 분석했습니다.
+→ 쉽게 말해, 은행을 거치지 않는 민간 대출 시장에서 투자자들이 돈을 빼기 어려워지고, 대출받은 기업들의 실적도 흔들리고 있다는 뜻입니다.
+
+ORIGINAL: CLO 시장처럼 이번 위기를 거치며 사모 대출은 금융 시스템 내에서 더욱 중요한 자산군으로 자리 잡을 전망입니다.
+OUTPUT:
+CLO 시장처럼 이번 위기를 거치며 사모 대출은 금융 시스템 내에서 더욱 중요한 자산군으로 자리 잡을 전망입니다.
+→ 쉽게 말해, CLO는 대출채권을 묶어 만든 투자상품인데, 과거 이 시장이 위기를 겪고도 성장한 것처럼 민간 대출도 이번 시련을 거쳐 더 커질 것이라는 전망입니다.
+
+Rules:
+- Do NOT change the original sentences — keep them word-for-word
+- Only ADD "→ 쉽게 말해," lines after sentences with jargon
+- Skip sentences that are already simple and clear
+- Non-[리서치] sections must be returned unchanged
+- Return the COMPLETE script (all sections), not just [리서치]
+
+SCRIPT:
+"""
+
+
+def review_research_jargon(gemini_client):
+    """Add jargon definitions and easy explanations to [리서치] section."""
+    print("\n📝 Step 3.6c: Adding jargon explanations to research (Gemini)...", flush=True)
+
+    with open(SCRIPT_FILE, "r", encoding="utf-8") as f:
+        original = f.read()
+
+    # Only process if [리서치] section exists
+    if "[리서치]" not in original:
+        print("  ⚠️  No [리서치] section found — skipping", flush=True)
+        return False
+
+    prompt = RESEARCH_JARGON_PROMPT + original
+    corrected = call_gemini(gemini_client, prompt,
+                            min_chars=int(len(original) * 0.9))
+
+    # Validate all sections preserved
+    required_tags = ["[시장개요]", "[뉴스]", "[리서치]"]
+    missing = [t for t in required_tags if t not in corrected]
+    if missing:
+        print(f"  ⚠️  Missing tags after jargon pass: {missing} — keeping original", flush=True)
+        return False
+
+    # Show what was added
+    original_lines = len(original.splitlines())
+    corrected_lines = len(corrected.splitlines())
+    added = corrected_lines - original_lines
+
+    with open(SCRIPT_FILE, "w", encoding="utf-8") as f:
+        f.write(corrected)
+
+    print(f"  ✅ Jargon explanations added: {original_lines} → {corrected_lines} lines (+{added} explanation lines)",
+          flush=True)
+    return True
+
+
 def main():
-    # Gemini client for script review (long output)
+    # Gemini client for script review + jargon (long output)
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
     if not gemini_key:
         print("⚠️  GEMINI_API_KEY not set — skipping script review", flush=True)
@@ -393,14 +463,21 @@ def main():
     if not os.path.exists(SCRIPT_FILE):
         sys.exit(f"Script not found: {SCRIPT_FILE}")
 
-    # Review script with Gemini (non-blocking on failure)
+    # Step 3.6a: Review script with Gemini (non-blocking on failure)
     if gemini_client:
         try:
             review_script(gemini_client)
         except Exception as e:
             print(f"  ⚠️  Script review failed — keeping original: {e}", flush=True)
 
-    # Review bullets with GPT-4o (non-blocking on failure)
+    # Step 3.6b: Add jargon explanations to [리서치] (non-blocking)
+    if gemini_client:
+        try:
+            review_research_jargon(gemini_client)
+        except Exception as e:
+            print(f"  ⚠️  Jargon review failed — keeping original: {e}", flush=True)
+
+    # Step 3.6c: Review bullets with GPT-4o (non-blocking on failure)
     if gpt_client and os.path.exists(TICKER_MAP_FILE):
         try:
             review_bullets(gpt_client)
