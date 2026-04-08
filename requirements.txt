@@ -3,6 +3,7 @@ requests==2.31.0
 groq==0.28.0
 google-genai==1.10.0
 google-cloud-texttospeech
+google-cloud-videointelligence
 edge-tts
 gTTS==2.5.3
 google-api-python-client==2.136.0

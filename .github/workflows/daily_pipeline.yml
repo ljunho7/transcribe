@@ -75,6 +75,14 @@ jobs:
       - name: Step 5 — Assemble video (FFmpeg)
         run: python -u scripts/assemble_video.py
 
+      - name: Step 5.5 — Analyze video for chapters and tags
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud_vi_key.json
+          GOOGLE_TTS_KEY: ${{ secrets.GOOGLE_TTS_KEY }}
+        run: |
+          echo "$GOOGLE_TTS_KEY" > /tmp/gcloud_vi_key.json
+          python -u scripts/video_intelligence.py
+
       - name: Step 6 — Upload to YouTube
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
