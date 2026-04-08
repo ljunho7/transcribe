@@ -343,8 +343,9 @@ Other rules:
 - Each story must be unique — never repeat the same topic
 - Once all unique stories are covered, STOP"""
 
-    # News section should be ~10% of combined input (dedup + compress)
-    news_min_chars = max(2000, int(len(combined) * 0.10))
+    # News section deduplicates overlapping stories from multiple podcasts,
+    # so output is much shorter than input. Use 5% with floor 2000, cap 6000.
+    news_min_chars = min(6000, max(2000, int(len(combined) * 0.05)))
     print(f"  🎯 News min_chars: {news_min_chars:,} chars", flush=True)
 
     news_script = call_gemini(
