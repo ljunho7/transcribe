@@ -62,7 +62,12 @@ jobs:
           ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
         run: python -u scripts/ticker_chart.py --charts-only
 
-      - name: Step 4 — Generate Korean voice (gTTS)
+      - name: Step 3.8 — Fetch earnings calendar (Finnhub)
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+        run: python -u scripts/economic_calendar.py
+
+      - name: Step 4 — Generate Korean voice (Edge TTS)
         run: python -u scripts/generate_voice.py
 
       - name: Step 5 — Assemble video (FFmpeg)

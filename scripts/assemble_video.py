@@ -40,6 +40,7 @@ IMAGES = {
     "[주요등락]": "assets/movers.jpg",
     "[섹터분석]": "assets/sectors.jpg",
     "[국가별]":   "assets/countries.jpg",
+    "[경제일정]": "assets/calendar.jpg",
 }
 
 
@@ -502,7 +503,7 @@ def generate_subtitles(manifest):
         script = f.read()
 
     # Parse all sections including [뉴스] and [리서치]
-    TAGS = ["[시장개요]", "[뉴스]", "[리서치]", "[주요등락]", "[섹터분석]", "[국가별]"]
+    TAGS = ["[시장개요]", "[뉴스]", "[리서치]", "[주요등락]", "[섹터분석]", "[국가별]", "[경제일정]"]
     section_texts = {}
     current_tag = None
     current_lines = []
