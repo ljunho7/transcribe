@@ -126,8 +126,10 @@ def format_market_for_prompt(md):
     return "\n".join(lines)
 
 
-def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=4096, thinking=False, models=None):
-    """Try each model until one succeeds with a valid response."""
+def call_gemini(client, prompt, required_tags, min_chars=0, max_tokens=4096, thinking=False, models=None):
+    """Try each model until one succeeds with a valid response.
+    Only validates required_tags presence — no min_chars rejection to avoid
+    wasting API rate limits on retries."""
     last_error = None
     for model in (models or MODELS):
         for attempt in range(1, MAX_RETRIES + 1):
@@ -151,10 +153,6 @@ def call_gemini(client, prompt, required_tags, min_chars=500, max_tokens=4096, t
                     print(f"  ⚠️  Missing tags: {missing} ({len(text)} chars)", flush=True)
                     print(f"  Preview: {text[:300]}", flush=True)
                     raise ValueError(f"Missing required tags: {missing}")
-                if len(text) < min_chars:
-                    print(f"  ⚠️  Too short: {len(text)} chars (min {min_chars})", flush=True)
-                    print(f"  Preview: {text[:300]}", flush=True)
-                    raise ValueError(f"Response too short: {len(text)} < {min_chars}")
                 print(f"  ✅ {model}: {len(text):,} chars", flush=True)
                 return text
             except Exception as e:
@@ -233,7 +231,6 @@ Rules:
     market_script = call_gemini(
         client, market_prompt,
         required_tags=["[시장개요]", "[주요등락]", "[섹터분석]", "[국가별]"],
-        min_chars=1000,
         max_tokens=8192
     )
 
@@ -274,13 +271,10 @@ Do NOT add any intro or closing sentence — just the translated content.
 TRANSCRIPT:
 {text}"""
 
-        # Translation should be at least 30% of input length (Korean is more compact)
-        translation_min = max(500, int(len(text) * 0.3))
         try:
             summary = call_gemini(
                 client, summary_prompt,
                 required_tags=[],
-                min_chars=translation_min,
                 max_tokens=65536
             )
             summary = filter_ads(summary)
@@ -343,15 +337,11 @@ Other rules:
 - Each story must be unique — never repeat the same topic
 - Once all unique stories are covered, STOP"""
 
-    # News section deduplicates overlapping stories from multiple podcasts,
-    # so output is much shorter than input. Use 5% with floor 2000, cap 6000.
-    news_min_chars = min(6000, max(2000, int(len(combined) * 0.05)))
-    print(f"  🎯 News min_chars: {news_min_chars:,} chars", flush=True)
+    print(f"  📦 Combined input: {len(combined):,} chars", flush=True)
 
     news_script = call_gemini(
         client, news_prompt,
         required_tags=["[뉴스]"],
-        min_chars=news_min_chars,
         max_tokens=32768,
         thinking=False,
         models=["gemini-3-flash-preview", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite-preview"]
