@@ -89,5 +89,12 @@
     "max_age_hours": 24,
     "priority": 13,
     "type": "research"
+  },
+  {
+    "name": "BofA Global Research Unlocked",
+    "rss": "https://feed.podbean.com/bofaglobalresearch/feed.xml",
+    "max_age_hours": 24,
+    "priority": 14,
+    "type": "research"
   }
 ]
