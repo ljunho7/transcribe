@@ -345,7 +345,7 @@ def generate_voice():
             print(f"\n{label}: {len(stories)} stories", flush=True)
             for j, story in enumerate(stories):
                 fname = AUDIO_DIR / f"{prefix}_story_{j+1:03d}.mp3"
-                full_text = f"{story['headline']}\n{story['text']}"
+                full_text = story['text']  # skip reading headline aloud
                 ok = tts_to_file(full_text, fname, pause=PAUSE_STORY)
                 if ok:
                     manifest.append({
