@@ -228,8 +228,11 @@ def postprocess_tickers(section_data, sections):
                 if t not in tickers:
                     tickers.append(t)
 
-        # 4. Remove tickers already in fixed sections
-        tickers = [t for t in tickers if t not in fixed_tickers]
+        # 4. Remove only INDEX/ETF tickers that overlap with fixed sections.
+        #    Keep individual stocks (UNH, INTC, etc.) even if they appear in
+        #    주요등락 — they deserve their own chart when discussed in a news story.
+        index_like = {t for t in fixed_tickers if t.startswith("^") or t.startswith("SPY") or t.startswith("EW")}
+        tickers = [t for t in tickers if t not in index_like]
 
         # 5. Deduplicate across news sections (first occurrence wins)
         unique = []
