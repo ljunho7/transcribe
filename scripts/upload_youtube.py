@@ -16,7 +16,8 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 
-VIDEO_FILE = "temp/final_video.mp4"
+VIDEO_FILE    = "temp/final_video.mp4"
+SUBTITLE_FILE = "temp/subtitles.srt"
 
 
 def upload_to_youtube():
@@ -30,7 +31,10 @@ def upload_to_youtube():
         client_id=os.environ["YOUTUBE_CLIENT_ID"],
         client_secret=os.environ["YOUTUBE_CLIENT_SECRET"],
         token_uri="https://oauth2.googleapis.com/token",
-        scopes=["https://www.googleapis.com/auth/youtube.upload"],
+        scopes=[
+            "https://www.googleapis.com/auth/youtube.upload",
+            "https://www.googleapis.com/auth/youtube.force-ssl",
+        ],
     )
     creds.refresh(Request())
 
@@ -88,6 +92,44 @@ def upload_to_youtube():
     print(f"\n✅ Upload complete!")
     print(f"   Video ID : {video_id}")
     print(f"   URL      : https://www.youtube.com/watch?v={video_id}")
+
+    # Upload subtitles if available
+    if os.path.exists(SUBTITLE_FILE):
+        upload_captions(youtube, video_id)
+    else:
+        print(f"  ⚠️  No subtitle file found: {SUBTITLE_FILE}")
+
+
+def upload_captions(youtube, video_id):
+    """Upload SRT subtitles to a YouTube video."""
+    try:
+        print(f"\n📝 Uploading subtitles for {video_id}...", flush=True)
+
+        caption_body = {
+            "snippet": {
+                "videoId": video_id,
+                "language": "ko",
+                "name": "Korean",
+                "isDraft": False,
+            }
+        }
+
+        media = MediaFileUpload(
+            SUBTITLE_FILE,
+            mimetype="application/x-subrip",
+            resumable=False,
+        )
+
+        youtube.captions().insert(
+            part="snippet",
+            body=caption_body,
+            media_body=media,
+        ).execute()
+
+        print(f"  ✅ Subtitles uploaded successfully", flush=True)
+
+    except Exception as e:
+        print(f"  ⚠️  Subtitle upload failed (non-blocking): {e}", flush=True)
 
 
 if __name__ == "__main__":
