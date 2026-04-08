@@ -362,30 +362,43 @@ Your response MUST start with this exact tag on its own line:
             models=_GEMINI_MODELS
         )
 
-    # ── Research section: concatenate directly (no Gemini call needed) ────
-    # Research translations are already individual pieces covering different
-    # topics — no deduplication needed. Saves an API call and preserves
-    # full detail that Gemini would otherwise compress.
+    # ── Call 2b: Research/analysis section ────────────────────────────────
     research_script = ""
     if research_summaries:
-        # Map source names to readable Korean labels
-        _SOURCE_LABELS = {
-            "Morgan_Stanley_Thoughts_on_the_Market": "모건스탠리 시장 전망",
-            "JP_Morgan_Making_Sense": "JP모건 시장 분석",
-            "Goldman_Sachs_The_Markets": "골드만삭스 시장 동향",
-            "Goldman_Sachs_Exchanges": "골드만삭스 심층 분석",
-            "Barclays_Brief": "바클레이즈 브리프",
-            "Barclays_The_Flip_Side": "바클레이즈 더 플립 사이드",
-            "BofA_Global_Research_Unlocked": "BofA 글로벌 리서치",
-        }
-        research_parts = ["[리서치]"]
+        research_combined = ""
         for s in research_summaries:
-            label = _SOURCE_LABELS.get(s["source"], s["source"].replace("_", " "))
-            body = s["summary"].strip()
-            if body:
-                research_parts.append(f"{label}\n{body}")
-        research_script = "\n\n".join(research_parts)
-        print(f"\n📋 Research section: {len(research_script):,} chars from {len(research_summaries)} sources (direct concat, no API call)", flush=True)
+            research_combined += f"[출처: {s['source']}]\n{s['summary']}\n\n===\n\n"
+        print(f"\n[Gemini] Call 2b: Research section ({len(research_combined):,} chars)...", flush=True)
+
+        research_prompt = f"""You are a professional Korean financial broadcast journalist.
+Today is {today} (Korean Standard Time).
+
+Below are Korean translations from INVESTMENT RESEARCH podcasts (Morgan Stanley, Goldman Sachs, JP Morgan, Barclays).
+These contain in-depth market analysis, investment outlooks, and expert commentary.
+
+CRITICAL: Preserve as much detail as possible. These are expert insights that viewers value.
+Do NOT summarize or shorten — translate and organize faithfully.
+Keep specific data points, forecasts, analyst names, and reasoning.
+
+Your task:
+1. Organize each research piece as a separate story
+2. Preserve the depth and detail of each analysis
+3. Do NOT merge different analysts' views — keep them as separate stories
+
+KOREAN TEXTS:
+{research_combined}
+
+Your response MUST start with this exact tag on its own line:
+[리서치]
+{_STORY_FORMAT}"""
+
+        research_script = call_gemini(
+            client, research_prompt,
+            required_tags=["[리서치]"],
+            max_tokens=65536,
+            thinking=False,
+            models=_GEMINI_MODELS
+        )
 
     # ── Clean up closing sentences from news/research (will add one at the end)
     def _strip_closing(text):
