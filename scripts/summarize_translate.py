@@ -273,15 +273,11 @@ Do NOT add any intro or closing sentence — just the translated content.
 TRANSCRIPT:
 {text}"""
 
-        # Use lite models for translations (high RPD, saves premium quota for merge/review)
-        _LITE_FIRST = ["gemini-2.5-flash-lite", "gemini-3.1-flash-lite-preview",
-                        "gemini-3-flash-preview", "gemini-2.5-flash"]
         try:
             summary = call_gemini(
                 client, summary_prompt,
                 required_tags=[],
-                max_tokens=65536,
-                models=_LITE_FIRST
+                max_tokens=65536
             )
             summary = filter_ads(summary)
             summaries.append({"source": txt_file.stem, "summary": summary})
