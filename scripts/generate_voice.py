@@ -371,6 +371,13 @@ def generate_voice():
     with open(SCRIPT_FILE, "r", encoding="utf-8") as f:
         script = f.read()
 
+    # Print final transcript for GitHub Actions log
+    print("\n" + "=" * 60, flush=True)
+    print("📄 FINAL TRANSCRIPT (after all reviews)", flush=True)
+    print("=" * 60, flush=True)
+    print(script, flush=True)
+    print("=" * 60 + "\n", flush=True)
+
     sections = parse_sections(script)
     print(f"📝 Sections found: {list(sections.keys())}", flush=True)
 
