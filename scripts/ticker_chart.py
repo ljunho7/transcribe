@@ -812,7 +812,12 @@ def make_chart(identifier, output_path):
     """Route to the right chart function based on identifier prefix.
     Falls back to FRED for yfinance tickers that failed to fetch."""
     if identifier.startswith("FRED:"):
-        return make_macro_chart(identifier[5:], output_path)
+        fred_id = identifier[5:]
+        # Validate against known FRED series to catch Groq hallucinations
+        if fred_id not in FRED_LABELS:
+            print(f"\n    ⚠  Unknown FRED series: {fred_id} (not in config — likely hallucinated)")
+            return False
+        return make_macro_chart(fred_id, output_path)
 
     # Try price chart first
     ok = make_price_chart(identifier, output_path)
