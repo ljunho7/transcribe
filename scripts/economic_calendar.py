@@ -71,6 +71,34 @@ def fetch_earnings():
         return []
 
 
+def lookup_company_names(earnings):
+    """Look up company names from Finnhub for each ticker."""
+    if not FINNHUB_KEY:
+        return earnings
+
+    import time as _time
+    for e in earnings:
+        symbol = e.get("symbol", "")
+        if not symbol or e.get("companyName"):
+            continue
+        try:
+            r = requests.get("https://finnhub.io/api/v1/stock/profile2", params={
+                "symbol": symbol,
+                "token": FINNHUB_KEY,
+            }, timeout=5)
+            data = r.json()
+            name = data.get("name", "")
+            if name:
+                e["companyName"] = name
+            _time.sleep(0.1)  # gentle rate limiting
+        except Exception:
+            pass
+
+    named = sum(1 for e in earnings if e.get("companyName"))
+    print(f"  📇 Looked up {named}/{len(earnings)} company names", flush=True)
+    return earnings
+
+
 def filter_top_earnings(earnings, max_count=20):
     """Filter to the most notable earnings. Prioritize by estimated revenue/EPS."""
     # Sort: companies with EPS estimates first (more notable), then alphabetically
@@ -163,6 +191,8 @@ def generate_calendar_image(earnings):
                 draw.rectangle([(70, y), (W - 70, y + 36)], fill=bg)
 
                 symbol = e.get("symbol", "?")
+                company = e.get("companyName", "")
+                display_name = f"{company} ({symbol})" if company else symbol
                 hour = e.get("hour", "")
                 hour_ko = {"bmo": "장전", "amc": "장후", "dmh": "장중"}.get(hour, hour)
 
@@ -193,7 +223,7 @@ def generate_calendar_image(earnings):
                     except (ValueError, TypeError):
                         return str(v)
 
-                draw.text((80, y + 6), symbol, font=fm, fill=WHITE)
+                draw.text((80, y + 6), display_name[:30], font=fm, fill=WHITE)
                 draw.text((220, y + 8), hour_ko, font=fs, fill=WHITE_DIM)
                 draw.text((400, y + 8), fmt_val(eps_est), font=fs, fill=WHITE_DIM)
                 draw.text((580, y + 8), fmt_val(eps_act), font=fs, fill=eps_color)
@@ -243,8 +273,12 @@ def generate_script_section(earnings):
         except Exception:
             date_label = date_str
 
-        symbols = [e.get("symbol", "?") for e in day_earnings[:8]]
-        lines.append(f"{date_label}에는 {', '.join(symbols)} 등의 실적 발표가 예정되어 있습니다.")
+        names = []
+        for e in day_earnings[:8]:
+            company = e.get("companyName", "")
+            symbol = e.get("symbol", "?")
+            names.append(f"{company}({symbol})" if company else symbol)
+        lines.append(f"{date_label}에는 {', '.join(names)} 등의 실적 발표가 예정되어 있습니다.")
 
     lines.append("투자자 여러분의 일정 관리에 참고하시기 바랍니다.")
     return "\n".join(lines)
@@ -276,6 +310,7 @@ def main():
 
     all_earnings = fetch_earnings()
     top_earnings = filter_top_earnings(all_earnings)
+    top_earnings = lookup_company_names(top_earnings)
 
     # Save data
     os.makedirs("temp", exist_ok=True)
