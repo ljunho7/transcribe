@@ -407,20 +407,11 @@ Rules:
 - Non-[리서치] sections must be returned unchanged
 - Return the COMPLETE script (all sections), not just [리서치]
 
-IMPORTANT — Only define HARD jargon that a general investor would NOT know.
-Do NOT define these common/easy terms (skip them):
-- 인플레이션, GDP, 금리, 연준/Fed, 유가, 환율, 주가, 배럴, 보조금
-- 금리 인상/인하, 성장 둔화, 수요/공급, 재정 적자, 무역수지
-- IPO, ETF, S&P 500, 나스닥, 다우, 국채, 채권, 주식
-- 상승/하락/급등/급락, 시가총액, 배당, 분기 실적
-- Any term that appears regularly in Korean business news
-
-DO define these harder terms (always explain):
-- CLO, PIK, 사모 대출/크레딧, 환매 제한, 스프레드, 레버리지
-- 큐비트, 이온 트랩, 양자 우위, 결함 허용
-- 수요 파괴, 액화 트레인, 페트로달러
-- 만기 벽, 가격 재발견, 자산군, 가치 사슬
-- Any English acronym not commonly known in Korea
+IMPORTANT — Only define terms that a regular Korean investor watching
+evening news would NOT understand. If a term appears regularly in
+Korean business news (like 인플레이션, GDP, 금리, IPO), skip it.
+Only explain specialized/technical terms that require finance
+expertise to understand.
 
 SCRIPT:
 """
