@@ -83,6 +83,19 @@ jobs:
           echo "$GOOGLE_TTS_KEY" > /tmp/gcloud_vi_key.json
           python -u scripts/video_intelligence.py
 
+      - name: Save video artifact (backup before upload)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-${{ github.run_number }}
+          path: |
+            temp/final_video.mp4
+            temp/korean_script.txt
+            temp/subtitles.srt
+            temp/ticker_map.json
+            temp/video_metadata.json
+          retention-days: 7
+
       - name: Step 6 — Upload to YouTube
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
