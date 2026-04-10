@@ -94,6 +94,21 @@ def lookup_company_names(earnings):
         except Exception:
             pass
 
+    # Clean up company names — remove legal suffixes
+    _SUFFIXES = [" Inc", " Corp", " Co", " Ltd", " LLC", " LP", " PLC",
+                 " Inc.", " Corp.", " Co.", " Ltd.", " plc", " SE",
+                 " N.V.", " S.A.", " AG", " Group", " Holdings",
+                 " International", " Incorporated", " Corporation"]
+    for e in earnings:
+        name = e.get("companyName", "")
+        for suffix in sorted(_SUFFIXES, key=len, reverse=True):
+            if name.endswith(suffix):
+                name = name[:-len(suffix)].strip()
+        # Remove trailing comma or period
+        name = name.rstrip(",. ")
+        if name:
+            e["companyName"] = name
+
     named = sum(1 for e in earnings if e.get("companyName"))
     print(f"  📇 Looked up {named}/{len(earnings)} company names", flush=True)
     return earnings
@@ -277,7 +292,7 @@ def generate_script_section(earnings):
         for e in day_earnings[:8]:
             company = e.get("companyName", "")
             symbol = e.get("symbol", "?")
-            names.append(f"{company}({symbol})" if company else symbol)
+            names.append(company if company else symbol)
         lines.append(f"{date_label}에는 {', '.join(names)} 등의 실적 발표가 예정되어 있습니다.")
 
     lines.append("투자자 여러분의 일정 관리에 참고하시기 바랍니다.")
