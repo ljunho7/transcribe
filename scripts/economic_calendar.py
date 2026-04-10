@@ -176,8 +176,12 @@ def generate_calendar_image(earnings):
             by_date[date].append(e)
 
         y = 140
+        MAX_PER_DAY = 5  # limit entries per day to prevent overflow
 
         for date_str, day_earnings in sorted(by_date.items()):
+            if y > H - 120:
+                break  # no room for another day
+
             # Date header
             try:
                 dt = datetime.strptime(date_str, "%Y-%m-%d")
@@ -186,24 +190,29 @@ def generate_calendar_image(earnings):
             except Exception:
                 date_label = date_str
 
-            draw.rectangle([(70, y), (W - 70, y + 34)], fill=(12, 18, 34))
-            draw.text((80, y + 4), date_label, font=fm, fill=AMBER)
-            y += 42
+            draw.rectangle([(70, y), (W - 70, y + 30)], fill=(12, 18, 34))
+            draw.text((80, y + 3), date_label, font=fm, fill=AMBER)
+            y += 36
 
-            # Column headers
-            draw.text((80, y), "티커", font=fs, fill=GRAY)
-            draw.text((220, y), "발표 시점", font=fs, fill=GRAY)
-            draw.text((400, y), "EPS 예상", font=fs, fill=GRAY)
-            draw.text((580, y), "EPS 실적", font=fs, fill=GRAY)
-            draw.text((760, y), "매출 예상", font=fs, fill=GRAY)
-            y += 28
+            # Column headers — company name left, rest spread to the right
+            draw.text((80, y), "종목", font=fs, fill=GRAY)
+            draw.text((850, y), "발표", font=fs, fill=GRAY)
+            draw.text((1050, y), "EPS 예상", font=fs, fill=GRAY)
+            draw.text((1300, y), "EPS 실적", font=fs, fill=GRAY)
+            draw.text((1550, y), "매출 예상", font=fs, fill=GRAY)
+            y += 26
 
+            shown = 0
             for i, e in enumerate(day_earnings):
-                if y > H - 90:
+                if y > H - 80 or shown >= MAX_PER_DAY:
+                    remaining = len(day_earnings) - shown
+                    if remaining > 0:
+                        draw.text((80, y + 2), f"  외 {remaining}개 기업", font=fs, fill=GRAY)
+                        y += 24
                     break
 
                 bg = (14, 20, 38) if i % 2 == 0 else (18, 26, 46)
-                draw.rectangle([(70, y), (W - 70, y + 36)], fill=bg)
+                draw.rectangle([(70, y), (W - 70, y + 40)], fill=bg)
 
                 symbol = e.get("symbol", "?")
                 company = e.get("companyName", "")
@@ -238,11 +247,11 @@ def generate_calendar_image(earnings):
                     except (ValueError, TypeError):
                         return str(v)
 
-                draw.text((80, y + 6), display_name[:30], font=fm, fill=WHITE)
-                draw.text((220, y + 8), hour_ko, font=fs, fill=WHITE_DIM)
-                draw.text((400, y + 8), fmt_val(eps_est), font=fs, fill=WHITE_DIM)
-                draw.text((580, y + 8), fmt_val(eps_act), font=fs, fill=eps_color)
-                draw.text((760, y + 8), fmt_val(rev_est), font=fs, fill=WHITE_DIM)
+                draw.text((80, y + 6), display_name[:40], font=fm, fill=WHITE)
+                draw.text((850, y + 8), hour_ko, font=fs, fill=WHITE_DIM)
+                draw.text((1050, y + 8), fmt_val(eps_est), font=fs, fill=WHITE_DIM)
+                draw.text((1300, y + 8), fmt_val(eps_act), font=fs, fill=eps_color)
+                draw.text((1550, y + 8), fmt_val(rev_est), font=fs, fill=WHITE_DIM)
 
                 y += 38
 
