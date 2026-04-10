@@ -408,10 +408,14 @@ Rules:
 - Return the COMPLETE script (all sections), not just [리서치]
 
 IMPORTANT — Only define terms that a regular Korean investor watching
-evening news would NOT understand. If a term appears regularly in
-Korean business news (like 인플레이션, GDP, 금리, IPO), skip it.
-Only explain specialized/technical terms that require finance
-expertise to understand.
+evening news would NOT understand. Only explain specialized/technical
+terms that require finance expertise to understand.
+
+Do NOT define any of these (too common, everyone knows):
+인플레이션, GDP, 금리, 연준, Fed, 유가, 환율, IPO, ETF,
+S&P 500, 나스닥, 다우, 국채, 채권, 주식, 배당, 시가총액,
+금리 인상, 금리 인하, 성장 둔화, 재정 적자, 무역수지,
+상승, 하락, 급등, 급락, 분기 실적, 보조금, 배럴
 
 SCRIPT:
 """
