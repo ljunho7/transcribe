@@ -40,9 +40,10 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python -u scripts/transcribe.py
 
-      - name: Step 3 — Summarize and translate to Korean (Gemini)
+      - name: Step 3 — Summarize and translate to Korean (Groq + Gemini)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python -u scripts/summarize_translate.py
 
       - name: Step 3.5 — Extract tickers and bullet points (Groq)

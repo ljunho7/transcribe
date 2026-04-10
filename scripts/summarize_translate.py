@@ -1,8 +1,8 @@
 """
 Step 3: Generate Korean script in separate Gemini calls:
   Call 1:       [시장개요] + [주요등락] + [섹터분석] + [국가별] — market data only
-  Pass 1 (N):   Translate each podcast transcript individually into Korean
-  Call 2 (final): [뉴스] — from combined Korean summaries
+  Pass 1 (N):   Translate each podcast transcript individually (Groq Llama 3.3)
+  Call 2 (final): [뉴스] + [리서치] — from combined Korean summaries (Gemini)
 """
 
 import os, json, time
@@ -10,6 +10,12 @@ from google import genai
 from google.genai import types
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
+
+try:
+    from groq import Groq
+    GROQ_AVAILABLE = True
+except ImportError:
+    GROQ_AVAILABLE = False
 
 # Model fallback chain — ordered by quality, with separate RPD quotas.
 # NOTE: gemini-3.1-flash-lite-preview has 8K max output (truncates long text!)
@@ -171,6 +177,58 @@ def call_gemini(client, prompt, required_tags, min_chars=0, max_tokens=4096, thi
     raise RuntimeError(f"All models failed. Last: {last_error}")
 
 
+GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MAX_RETRIES = 3
+
+
+def translate_with_groq(text, groq_client):
+    """Translate English text to Korean using Groq Llama 3.3 70B.
+    Returns Korean text or None on failure."""
+    prompt = f"""Translate the following English financial podcast transcript into Korean.
+This is a FULL TRANSLATION task, not a summary. Preserve all details, data points,
+quotes, and analysis. The Korean output should be roughly the same length as the
+English input (Korean text is naturally more compact, but do NOT omit content).
+
+SKIP these completely — do NOT translate any of the following:
+- Sponsor messages ("brought to you by...", "sponsored by...", "support for this comes from...")
+- Product/service promotions (IBM, Chase, Hartford, Odoo, TrueStage, CARE, VantageCore, etc.)
+- Insurance, credit score, business software, charity pitches
+- Calls to action ("visit our website", "download our app", "use code...", "learn more at...")
+- Podcast self-promotion ("subscribe", "rate and review", "show notes", "links in description")
+- Any paragraph that is clearly an advertisement, not news content
+
+Translate ALL actual news, analysis, interviews, and commentary — do not summarize or shorten.
+Write in natural Korean prose — no bullet points, no headers, no tags.
+Do NOT add any intro or closing sentence — just the translated content.
+
+TRANSCRIPT:
+{text}"""
+
+    for attempt in range(1, GROQ_MAX_RETRIES + 1):
+        try:
+            print(f"  [Groq] {GROQ_MODEL} attempt {attempt}/{GROQ_MAX_RETRIES} "
+                  f"({len(text):,} chars)...", flush=True)
+            response = groq_client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.3,
+                max_tokens=32768,
+            )
+            result = response.choices[0].message.content.strip()
+            print(f"  ✅ Groq: {len(result):,} chars", flush=True)
+            return result
+        except Exception as e:
+            err_str = str(e)
+            print(f"  Failed: {err_str[:200]}", flush=True)
+            if "rate" in err_str.lower() or "429" in err_str:
+                time.sleep(10 * attempt)
+            elif attempt < GROQ_MAX_RETRIES:
+                time.sleep(5)
+    return None
+
+
 def summarize_and_translate():
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
@@ -242,7 +300,12 @@ Rules:
     if not transcript_files:
         raise ValueError("No transcripts found")
 
-    print(f"\n[Gemini] Pass 1: Translating {len(transcript_files)} podcasts into Korean...", flush=True)
+    # Initialize Groq client for translations (saves Gemini quota for merge/review)
+    groq_key = os.environ.get("GROQ_API_KEY", "")
+    groq_client = Groq(api_key=groq_key) if GROQ_AVAILABLE and groq_key else None
+
+    engine = "Groq Llama 3.3" if groq_client else "Gemini"
+    print(f"\n[{engine}] Pass 1: Translating {len(transcript_files)} podcasts into Korean...", flush=True)
 
     summaries = []
     for txt_file in transcript_files:
@@ -253,7 +316,20 @@ Rules:
             text = text[:MAX_CHARS_PER_TRANSCRIPT]
         print(f"\n  📄 {txt_file.name}: {original_len:,} → {len(text):,} chars", flush=True)
 
-        summary_prompt = f"""Translate the following English financial podcast transcript into Korean.
+        summary = None
+
+        # Try Groq first (1,000 RPD, 32K output — saves Gemini quota)
+        if groq_client:
+            summary = translate_with_groq(text, groq_client)
+            if summary:
+                summary = filter_ads(summary)
+
+        # Fallback to Gemini if Groq failed
+        if not summary:
+            if groq_client:
+                print(f"  ↪ Groq failed — falling back to Gemini...", flush=True)
+
+            summary_prompt = f"""Translate the following English financial podcast transcript into Korean.
 This is a FULL TRANSLATION task, not a summary. Preserve all details, data points,
 quotes, and analysis. The Korean output should be roughly the same length as the
 English input (Korean text is naturally more compact, but do NOT omit content).
@@ -273,18 +349,21 @@ Do NOT add any intro or closing sentence — just the translated content.
 TRANSCRIPT:
 {text}"""
 
-        try:
-            summary = call_gemini(
-                client, summary_prompt,
-                required_tags=[],
-                max_tokens=65536
-            )
-            summary = filter_ads(summary)
+            try:
+                summary = call_gemini(
+                    client, summary_prompt,
+                    required_tags=[],
+                    max_tokens=65536
+                )
+                summary = filter_ads(summary)
+            except Exception as e:
+                print(f"  ⚠️  Translation failed for {txt_file.name}: {e} — skipping", flush=True)
+                continue
+
+        if summary:
             summaries.append({"source": txt_file.stem, "summary": summary})
             print(f"  ✅ Summary: {len(summary):,} chars", flush=True)
-            print(f"  --- Summary preview ---\n{summary}\n  ---", flush=True)
-        except Exception as e:
-            print(f"  ⚠️  Summary failed for {txt_file.name}: {e} — skipping", flush=True)
+            print(f"  --- Summary preview ---\n{summary[:500]}\n  ---", flush=True)
 
     if not summaries:
         raise ValueError("No summaries produced")
