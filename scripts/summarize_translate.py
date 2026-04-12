@@ -258,14 +258,11 @@ MARKET DATA:
 Output format:
 
 [시장개요]
-Cover ONLY these key variables in this order:
-1. 주요 지수: S&P 500, NASDAQ, DOW, SOX — price and % change for each
-2. 외환: USD/KRW, EUR/USD, DXY — mention only if move is notable (>0.3%)
-3. 암호화폐: mention only if move is notable (>2%)
-4. 금리: 미국 10년물 국채 금리 only — as a key benchmark
-   - 연방기금금리: mention ONLY if chg_bp is non-zero (i.e. Fed actually changed rates)
-5. One sentence on overall market sentiment
-Keep concise — 1-2 minutes max.
+KEEP THIS VERY SHORT — maximum 3 sentences total:
+  Sentence 1: 주요 지수 (S&P 500, NASDAQ, DOW) with % change in one sentence
+  Sentence 2: One notable move (biggest FX, crypto, or rate change)
+  Sentence 3: One-line overall market sentiment
+That's it. No more. The detailed data is shown on screen via background image.
 
 [주요등락]
 Top 3 gainers and top 3 losers from S&P 500. Name, ticker, % change, one-line reason if notable.
