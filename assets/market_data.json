@@ -2,53 +2,58 @@
   "return_mode": "daily",
   "equity": {
     "S&P 500": {
-      "price": 6886.24,
-      "chg_pct": 1.02
+      "price": 6967.38,
+      "chg_pct": 1.18
     },
     "NASDAQ": {
-      "price": 23183.74,
-      "chg_pct": 1.23
+      "price": 23639.08,
+      "chg_pct": 1.96
     },
     "DOW": {
-      "price": 48218.25,
-      "chg_pct": 0.63
+      "price": 48535.99,
+      "chg_pct": 0.66
     },
     "반도체(SOX)": {
-      "price": 9039.52,
-      "chg_pct": 1.68
+      "price": 9224.12,
+      "chg_pct": 2.04
     }
   },
   "fx": {
     "USD/KRW": {
-      "price": 1479.22,
-      "chg_pct": -0.2
+      "price": 1471.41,
+      "chg_pct": -0.73
     },
     "EUR/USD": {
-      "price": 1.1767,
-      "chg_pct": 0.79
+      "price": 1.1799,
+      "chg_pct": 1.06
     },
     "DXY": {
-      "price": 98.355,
-      "chg_pct": -0.3
+      "price": 98.122,
+      "chg_pct": -0.25
     }
   },
-  "crypto": {},
+  "crypto": {
+    "비트코인": {
+      "price": 74294.0,
+      "chg_pct": -0.26
+    }
+  },
   "rates": {
     "미국 2년물": {
-      "rate": 3.81,
-      "chg_bp": 3.0
+      "rate": 3.78,
+      "chg_bp": -3.0
     },
     "미국 5년물": {
-      "rate": 3.94,
-      "chg_bp": 3.0
+      "rate": 3.92,
+      "chg_bp": -2.0
     },
     "미국 10년물": {
-      "rate": 4.31,
-      "chg_bp": 2.0
+      "rate": 4.3,
+      "chg_bp": -1.0
     },
     "미국 30년물": {
-      "rate": 4.91,
-      "chg_bp": 1.0
+      "rate": 4.9,
+      "chg_bp": -1.0
     },
     "연방기금금리": {
       "rate": 3.75,
@@ -57,350 +62,350 @@
   },
   "gainers": [
     {
+      "symbol": "HOOD",
+      "price": 79.09,
+      "chg_pct": 10.35,
+      "name": "Robinhood Markets"
+    },
+    {
+      "symbol": "MU",
+      "price": 465.66,
+      "chg_pct": 9.17,
+      "name": "Micron Technology"
+    },
+    {
+      "symbol": "DAL",
+      "price": 71.7,
+      "chg_pct": 6.94,
+      "name": "Delta Air Lines"
+    },
+    {
+      "symbol": "AXON",
+      "price": 380.86,
+      "chg_pct": 5.9,
+      "name": "Axon Enterprise"
+    },
+    {
+      "symbol": "COIN",
+      "price": 184.41,
+      "chg_pct": 5.66,
+      "name": "Coinbase"
+    },
+    {
+      "symbol": "ARES",
+      "price": 112.61,
+      "chg_pct": 5.56,
+      "name": "Ares Management"
+    },
+    {
+      "symbol": "TDG",
+      "price": 1296.58,
+      "chg_pct": 5.15,
+      "name": "TransDigm Group"
+    },
+    {
       "symbol": "ORCL",
-      "price": 155.62,
-      "chg_pct": 12.69,
+      "price": 163.0,
+      "chg_pct": 4.74,
       "name": "Oracle Corporation"
     },
     {
-      "symbol": "SNDK",
-      "price": 952.5,
-      "chg_pct": 11.83,
-      "name": "Sandisk"
+      "symbol": "SMCI",
+      "price": 27.2,
+      "chg_pct": 4.74,
+      "name": "Supermicro"
     },
     {
-      "symbol": "FICO",
-      "price": 1000.91,
-      "chg_pct": 8.52,
-      "name": "Fair Isaac"
-    },
-    {
-      "symbol": "CDNS",
-      "price": 288.2,
-      "chg_pct": 8.48,
-      "name": "Cadence Design Systems"
-    },
-    {
-      "symbol": "KKR",
-      "price": 98.14,
-      "chg_pct": 7.59,
-      "name": "KKR & Co."
-    },
-    {
-      "symbol": "IT",
-      "price": 154.22,
-      "chg_pct": 7.31,
-      "name": "Gartner"
-    },
-    {
-      "symbol": "NOW",
-      "price": 89.06,
-      "chg_pct": 7.3,
-      "name": "ServiceNow"
-    },
-    {
-      "symbol": "FIS",
-      "price": 46.43,
-      "chg_pct": 7.06,
-      "name": "Fidelity National Information Services"
-    },
-    {
-      "symbol": "FDS",
-      "price": 226.42,
-      "chg_pct": 7.0,
-      "name": "FactSet"
-    },
-    {
-      "symbol": "ACN",
-      "price": 191.95,
-      "chg_pct": 6.92,
-      "name": "Accenture"
+      "symbol": "LUV",
+      "price": 41.26,
+      "chg_pct": 4.59,
+      "name": "Southwest Airlines"
     }
   ],
   "losers": [
     {
-      "symbol": "FAST",
-      "price": 45.8,
-      "chg_pct": -6.85,
-      "name": "Fastenal"
+      "symbol": "AKAM",
+      "price": 88.84,
+      "chg_pct": -6.43,
+      "name": "Akamai Technologies"
     },
     {
-      "symbol": "CAG",
-      "price": 14.51,
-      "chg_pct": -4.41,
-      "name": "Conagra Brands"
+      "symbol": "APA",
+      "price": 37.03,
+      "chg_pct": -6.23,
+      "name": "APA Corporation"
     },
     {
-      "symbol": "EIX",
-      "price": 72.39,
-      "chg_pct": -4.4,
-      "name": "Edison International"
+      "symbol": "WFC",
+      "price": 81.7,
+      "chg_pct": -5.7,
+      "name": "Wells Fargo"
     },
     {
-      "symbol": "PCG",
-      "price": 17.74,
-      "chg_pct": -4.32,
-      "name": "PG&E Corporation"
+      "symbol": "CHTR",
+      "price": 215.57,
+      "chg_pct": -4.74,
+      "name": "Charter Communications"
     },
     {
-      "symbol": "NEM",
-      "price": 116.5,
-      "chg_pct": -3.64,
-      "name": "Newmont"
+      "symbol": "OXY",
+      "price": 55.38,
+      "chg_pct": -4.62,
+      "name": "Occidental Petroleum"
     },
     {
-      "symbol": "TGT",
-      "price": 117.88,
-      "chg_pct": -3.29,
-      "name": "Target Corporation"
+      "symbol": "ERIE",
+      "price": 249.43,
+      "chg_pct": -4.54,
+      "name": "Erie Indemnity"
     },
     {
-      "symbol": "CIEN",
-      "price": 479.9,
-      "chg_pct": -3.25,
-      "name": "Ciena"
+      "symbol": "DVN",
+      "price": 45.25,
+      "chg_pct": -4.27,
+      "name": "Devon Energy"
     },
     {
-      "symbol": "T",
-      "price": 25.61,
-      "chg_pct": -3.21,
-      "name": "AT&T"
+      "symbol": "CTRA",
+      "price": 31.67,
+      "chg_pct": -4.06,
+      "name": "Coterra"
     },
     {
-      "symbol": "LITE",
-      "price": 871.18,
-      "chg_pct": -2.91,
-      "name": "Lumentum"
+      "symbol": "COP",
+      "price": 118.79,
+      "chg_pct": -3.91,
+      "name": "ConocoPhillips"
     },
     {
-      "symbol": "GIS",
-      "price": 34.56,
-      "chg_pct": -2.89,
-      "name": "General Mills"
+      "symbol": "IT",
+      "price": 149.1,
+      "chg_pct": -3.32,
+      "name": "Gartner"
     }
   ],
   "sectors": {
     "XLK": {
       "ko": "IT",
-      "chg_pct": 2.1
+      "chg_pct": 1.6
     },
     "XLF": {
       "ko": "금융",
-      "chg_pct": 1.75
+      "chg_pct": 0.23
     },
     "XLV": {
       "ko": "헬스케어",
-      "chg_pct": 0.45
+      "chg_pct": 0.58
     },
     "XLY": {
       "ko": "임의소비재",
-      "chg_pct": 0.91
+      "chg_pct": 2.21
     },
     "XLC": {
       "ko": "통신",
-      "chg_pct": 0.76
+      "chg_pct": 1.52
     },
     "XLI": {
       "ko": "산업재",
-      "chg_pct": 0.71
+      "chg_pct": 0.36
     },
     "XLP": {
       "ko": "필수소비재",
-      "chg_pct": -1.0
+      "chg_pct": -0.1
     },
     "XLE": {
       "ko": "에너지",
-      "chg_pct": 0.3
+      "chg_pct": -2.03
     },
     "XLB": {
       "ko": "소재",
-      "chg_pct": 0.44
+      "chg_pct": -0.34
     },
     "XLRE": {
       "ko": "부동산",
-      "chg_pct": 0.47
+      "chg_pct": 0.95
     },
     "XLU": {
       "ko": "유틸리티",
-      "chg_pct": -1.21
+      "chg_pct": 0.17
     }
   },
   "countries": {
     "SPY": {
       "ko": "미국",
-      "chg_pct": 0.98
+      "chg_pct": 1.22
     },
     "EWC": {
       "ko": "캐나다",
-      "chg_pct": 0.88
+      "chg_pct": 0.77
     },
     "EWW": {
       "ko": "멕시코",
-      "chg_pct": -0.26
+      "chg_pct": -0.69
     },
     "EWZ": {
       "ko": "브라질",
-      "chg_pct": 0.46
+      "chg_pct": 0.51
     },
     "ARGT": {
       "ko": "아르헨티나",
-      "chg_pct": 0.48
+      "chg_pct": -0.59
     },
     "ECH": {
       "ko": "칠레",
-      "chg_pct": 1.18
+      "chg_pct": 2.1
     },
     "EPU": {
       "ko": "페루",
-      "chg_pct": 2.19
+      "chg_pct": -0.56
     },
     "GXG": {
       "ko": "콜롬비아",
-      "chg_pct": 1.36
+      "chg_pct": 2.41
     },
     "EWU": {
       "ko": "영국",
-      "chg_pct": 0.4
+      "chg_pct": 0.44
     },
     "EWG": {
       "ko": "독일",
-      "chg_pct": 0.82
+      "chg_pct": 0.6
     },
     "EWP": {
       "ko": "스페인",
-      "chg_pct": 0.31
+      "chg_pct": 0.87
     },
     "EWL": {
       "ko": "스위스",
-      "chg_pct": 0.92
+      "chg_pct": 0.98
     },
     "EWI": {
       "ko": "이탈리아",
-      "chg_pct": 0.77
+      "chg_pct": 0.78
     },
     "EWQ": {
       "ko": "프랑스",
-      "chg_pct": 0.48
+      "chg_pct": 0.93
     },
     "EWD": {
       "ko": "스웨덴",
-      "chg_pct": 2.22
+      "chg_pct": 0.62
     },
     "GREK": {
       "ko": "그리스",
-      "chg_pct": 1.12
+      "chg_pct": 1.61
     },
     "TUR": {
       "ko": "터키",
-      "chg_pct": 0.36
+      "chg_pct": 0.57
     },
     "EWN": {
       "ko": "네덜란드",
-      "chg_pct": 0.91
+      "chg_pct": 1.25
     },
     "EPOL": {
       "ko": "폴란드",
-      "chg_pct": 1.43
+      "chg_pct": 0.98
     },
     "EDEN": {
       "ko": "덴마크",
-      "chg_pct": 0.21
+      "chg_pct": 2.19
     },
     "EWO": {
       "ko": "오스트리아",
-      "chg_pct": 0.81
+      "chg_pct": 2.14
     },
     "ENOR": {
       "ko": "노르웨이",
-      "chg_pct": 1.43
+      "chg_pct": -1.3
     },
     "EFNL": {
       "ko": "핀란드",
-      "chg_pct": 2.52
+      "chg_pct": 0.16
     },
     "EWK": {
       "ko": "벨기에",
-      "chg_pct": 0.58
+      "chg_pct": 0.53
     },
     "EIS": {
       "ko": "이스라엘",
-      "chg_pct": -0.42
+      "chg_pct": 1.82
     },
     "KSA": {
       "ko": "사우디",
-      "chg_pct": 1.26
+      "chg_pct": 0.27
     },
     "UAE": {
       "ko": "UAE",
-      "chg_pct": 1.98
+      "chg_pct": 1.79
     },
     "KWT": {
       "ko": "쿠웨이트",
-      "chg_pct": 0.87
+      "chg_pct": 0.23
     },
     "QAT": {
       "ko": "카타르",
-      "chg_pct": -1.06
+      "chg_pct": 0.39
     },
     "EZA": {
       "ko": "남아공",
-      "chg_pct": 0.39
+      "chg_pct": 1.7
     },
     "EWJ": {
       "ko": "일본",
-      "chg_pct": 0.25
+      "chg_pct": 1.2
     },
     "EWY": {
       "ko": "한국",
-      "chg_pct": 1.8
+      "chg_pct": 3.86
     },
     "INDA": {
       "ko": "인도",
-      "chg_pct": 0.02
+      "chg_pct": 0.71
     },
     "EWT": {
       "ko": "대만",
-      "chg_pct": 1.72
+      "chg_pct": 2.49
     },
     "MCHI": {
       "ko": "중국",
-      "chg_pct": 0.3
+      "chg_pct": 1.17
     },
     "EWS": {
       "ko": "싱가포르",
-      "chg_pct": 0.9
+      "chg_pct": -0.03
     },
     "EWH": {
       "ko": "홍콩",
-      "chg_pct": -0.67
+      "chg_pct": 0.63
     },
     "EWA": {
       "ko": "호주",
-      "chg_pct": 1.04
+      "chg_pct": 0.1
     },
     "VNM": {
       "ko": "베트남",
-      "chg_pct": 0.55
+      "chg_pct": 0.71
     },
     "EWM": {
       "ko": "말레이시아",
-      "chg_pct": 0.14
+      "chg_pct": 0.66
     },
     "THD": {
       "ko": "태국",
-      "chg_pct": 0.81
+      "chg_pct": 1.16
     },
     "EIDO": {
       "ko": "인도네시아",
-      "chg_pct": 1.06
+      "chg_pct": 1.61
     },
     "EPHE": {
       "ko": "필리핀",
-      "chg_pct": -0.04
+      "chg_pct": 0.0
     },
     "ENZL": {
       "ko": "뉴질랜드",
-      "chg_pct": 0.49
+      "chg_pct": 0.46
     }
   }
 }
