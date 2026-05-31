@@ -8,11 +8,11 @@ from datetime import datetime, timezone, timedelta
 from google import genai
 from google.genai import types
 
-# Model fallback chain — ordered by quality, with separate RPD quotas.
+# Model fallback chain — premium first, lite as fallback.
 MODELS = [
     "gemini-3.5-flash",         # 65K output, newest, best quality
-    "gemini-3.1-flash-lite",    # 66K output, GA, budget-friendly
     "gemini-2.5-flash",         # 65K output, proven reliable
+    "gemini-3.1-flash-lite",    # 66K output, GA, budget-friendly
     "gemini-2.5-flash-lite",    # 65K output, high RPD
 ]
 MAX_RETRIES = 3
@@ -190,7 +190,7 @@ Rules:
         min_chars=news_min_chars,
         max_tokens=32768,
         no_thinking=True,
-        models=["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
+        models=["gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"]
     )
 
     # ── Save ──────────────────────────────────────────────────────────────

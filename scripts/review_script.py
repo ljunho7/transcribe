@@ -37,11 +37,11 @@ GH_MODELS_URL = "https://models.inference.ai.azure.com"
 GPT_MODEL     = "gpt-4o"
 
 # Gemini — for script review (long output)
-# Model fallback chain — ordered by quality, with separate RPD quotas.
+# Model fallback chain — premium first, lite as fallback.
 GEMINI_MODELS = [
     "gemini-3.5-flash",         # 65K output, newest, best quality
-    "gemini-3.1-flash-lite",    # 66K output, GA, budget-friendly
     "gemini-2.5-flash",         # 65K output, proven reliable
+    "gemini-3.1-flash-lite",    # 66K output, GA, budget-friendly
     "gemini-2.5-flash-lite",    # 65K output, high RPD
 ]
 

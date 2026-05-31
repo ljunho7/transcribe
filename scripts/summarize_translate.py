@@ -17,11 +17,11 @@ try:
 except ImportError:
     GROQ_AVAILABLE = False
 
-# Model fallback chain — ordered by quality, with separate RPD quotas.
+# Model fallback chain — premium first, lite as fallback.
 MODELS = [
     "gemini-3.5-flash",         # 65K output, newest, best quality
-    "gemini-3.1-flash-lite",    # 66K output, GA, budget-friendly
     "gemini-2.5-flash",         # 65K output, proven reliable
+    "gemini-3.1-flash-lite",    # 66K output, GA, budget-friendly
     "gemini-2.5-flash-lite",    # 65K output, high RPD
 ]
 MAX_RETRIES = 3
@@ -401,7 +401,7 @@ CRITICAL FORMATTING RULES:
 - Each story must be unique — never repeat the same topic
 - Once all unique stories are covered, STOP"""
 
-    _GEMINI_MODELS = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
+    _GEMINI_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"]
 
     # ── Call 2a: News section ────────────────────────────────────────────
     news_script = ""
